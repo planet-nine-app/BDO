@@ -1,5 +1,6 @@
 import config from './config/local.js';
 import express from 'express';
+import cors from 'cors';
 import bdo from './src/bdo/bdo.js';
 import fetch from 'node-fetch';
 import sessionless from 'sessionless-node';
@@ -12,11 +13,12 @@ const gk = () => {
   return keys;
 };
 
-const continuebeeURL = 'https://thirsty-gnu-80.deno.dev/';
+const continuebeeURL = 'https://dev.continuebee.allyabase.com/';
 
 sessionless.generateKeys(sk, gk);
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 app.use((req, res, next) => {
