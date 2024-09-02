@@ -108,7 +108,7 @@ console.log('get bdo');
     const signature = req.query.signature;
     const hash = req.query.hash;
 
-    const resp = await fetch(`${continuebeeURL}user/${uuid}?timestamp=${timestamp}&signature=${signature}`);
+    const resp = await fetch(`${continuebeeURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
 console.log(resp.status);
     if(resp.status !== 200) {
       res.status = 403;
