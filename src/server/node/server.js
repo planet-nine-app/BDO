@@ -4,6 +4,7 @@ import cors from 'cors';
 import bdo from './src/bdo/bdo.js';
 import fetch from 'node-fetch';
 import sessionless from 'sessionless-node';
+import MAGIC from './src/magic/magic.js';
 
 const sk = (keys) => {
   global.keys = keys;
@@ -37,15 +38,12 @@ app.put('/user/create', async (req, res) => {
     const hash = body.hash;
     const newBDO = body.bdo;
     
-console.log(`${continuebeeURL}user/create`);
-console.log(body);
-
     const resp = await fetch(`${continuebeeURL}user/create`, {
       method: 'post',
       body: JSON.stringify(body),
       headers: {'Content-Type': 'application/json'}
     });
-console.log(resp.status);
+    
     if(resp.status !== 200) {
       res.status = 403;
       return res.send({error: 'Auth error'});
@@ -124,6 +122,28 @@ console.log(resp.status);
 console.warn(err);
     res.status(404);
     return res.send({error: 'not found'});
+  }
+});
+
+app.post('/magic/spell/:spellName', async (req, res) => {
+  try {
+    const spellName = req.params.spell;
+    const spell = req.body.spell;
+
+    switch(spellName) {
+      case 'joinup': const resp = await MAGIC.joinup(spell);
+        return res.send(resp);
+        break;
+      case 'linkup': const resp = await MAGIC.linkup(spell);
+        return res.send(resp);
+        break;
+    }
+
+    res.status(404);
+    res.send({error: 'spell not found'});
+  } catch(err) {
+    res.status(404);
+    res.send({error: 'not found'});
   }
 });
 
