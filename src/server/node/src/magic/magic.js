@@ -42,7 +42,7 @@ const MAGIC = {
   gatewayForSpell: async (spellName) => {
     const bdo = await db.getUser('bdo');
     const gateway = {
-      timestamp = new Date().getTime() + '',
+      timestamp: new Date().getTime() + '',
       uuid: bdo.uuid, 
       minimumCost: 20,
       ordinal: bdo.ordinal

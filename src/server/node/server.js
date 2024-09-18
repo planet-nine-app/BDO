@@ -6,6 +6,7 @@ import fetch from 'node-fetch';
 import fount from 'fount-js';
 import sessionless from 'sessionless-node';
 import MAGIC from './src/magic/magic.js';
+import db from './src/persistence/db.js';
 
 const sk = (keys) => {
   global.keys = keys;
@@ -46,7 +47,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const SUBDOMAIN = process.env.SUBDOMAIN || 'dev';
 fount.baseURL = `${SUBDOMAIN}.fount.allyabase.com`;
 
 try {
@@ -172,11 +172,11 @@ app.post('/magic/spell/:spellName', async (req, res) => {
     const spell = req.body.spell;
 
     switch(spellName) {
-      case 'joinup': const resp = await MAGIC.joinup(spell);
-        return res.send(resp);
+      case 'joinup': const joinupResp = await MAGIC.joinup(spell);
+        return res.send(joinupResp);
         break;
-      case 'linkup': const resp = await MAGIC.linkup(spell);
-        return res.send(resp);
+      case 'linkup': const linkupResp = await MAGIC.linkup(spell);
+        return res.send(linkupResp);
         break;
     }
 
