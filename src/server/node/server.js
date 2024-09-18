@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import bdo from './src/bdo/bdo.js';
 import fetch from 'node-fetch';
+import fount from 'fount-js';
 import sessionless from 'sessionless-node';
 import MAGIC from './src/magic/magic.js';
 
@@ -14,13 +15,53 @@ const gk = () => {
   return keys;
 };
 
-const continuebeeURL = 'https://dev.continuebee.allyabase.com/';
+const SUBDOMAIN = process.env.SUBDOMAIN || 'dev';
+
+const continuebeeURL = `https://${SUBDOMAIN}.continuebee.allyabase.com/`;
+
+const repeat = (func) => {
+  setTimeout(func, 2000);
+};
+
+const bootstrap = async () => {
+  try {
+    await user.getUserByUUID('bdo');
+    sessionless.getKeys = db.getKeys;
+  } catch(err) {
+    const fountUUID = await fount.createUser(db.saveKeys, db.getKeys);
+    const bdo = {
+      uuid: 'bdo',
+      fountUUID
+    };
+    await db.saveUser(bdo);
+    repeat(bootstrap);
+  }
+};
+
+repeat(bootstrap);
 
 sessionless.generateKeys(sk, gk);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const SUBDOMAIN = process.env.SUBDOMAIN || 'dev';
+fount.baseURL = `${SUBDOMAIN}.fount.allyabase.com`;
+
+try {
+  await user.getUserByUUID('addie');
+  sessionless.getKeys = db.getKeys;
+} catch(err) {
+  setTimeout(async () => {
+    const fountUUID = await fount.createUser(db.saveKeys, db.getKeys);
+    const bdo = {
+      uuid: 'bdo',
+      fountUUID
+    };
+    await db.saveUser(addie);
+  }, 5000);
+}
 
 app.use((req, res, next) => {
 console.log('got request');
