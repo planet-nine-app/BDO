@@ -29,19 +29,18 @@ const bootstrap = async () => {
   try {
     const { fountUUID = uuid, fountPubKey = pubKey } = await fount.createUser(db.saveKeys, db.getKeys);
     const spellbook = await bdo.getBDO(bdoUUID, bdoHash, fountPubKey);
-    const addie = {
-      uuid: 'addie',
+    const bdo = {
+      uuid: 'bdo',
       fountUUID,
       fountPubKey,
-      bdoUUID,
       spellbook
     };
 
-    if(!addie.fountUUID || !addie.bdoUUID || !spellbook) {
+    if(!bdo.fountUUID || !spellbook) {
       throw new Error('bootstrap failed');
     }
 
-    await db.saveUser(addie);
+    await db.saveUser(bdo);
   } catch(err) {
     repeat(bootstrap);
   }
