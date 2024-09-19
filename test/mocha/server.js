@@ -27,8 +27,11 @@ const _delete = async function(path, body) {
 };
 
 const hash = "hereisanexampleofahash";
+const anotherHash = "hereisasecondhash";
 let savedUser = {};
+let savedUser2 = {};
 let keys = {};
+let keys2 = {};
 let keysToReturn = {};
 
 it('should register a user', async () => {
@@ -41,7 +44,8 @@ it('should register a user', async () => {
     timestamp: new Date().getTime() + '',
     pubKey: keys.pubKey,
     hash,
-    preferences: {
+    bdo: {
+      pubKey: keys.pubKey,
       foo: "bar",
       baz: "bop"
     }
@@ -55,11 +59,42 @@ console.log(res.body);
   res.body.uuid.length.should.equal(36);
 });
 
+it('should register another user with a public bdo', async () => {
+  keys2 = await sessionless.generateKeys((k) => { keysToReturn = k; }, () => {return keysToReturn;});
+/*  keys = {
+    privateKey: 'd6bfebeafa60e27114a40059a4fe82b3e7a1ddb3806cd5102691c3985d7fa591',
+    pubKey: '03f60b3bf11552f5a0c7d6b52fcc415973d30b52ab1d74845f1b34ae8568a47b5f'
+  };*/
+  const payload = {
+    timestamp: new Date().getTime() + '',
+    pubKey: keys2.pubKey,
+    hash: anotherHash,
+    public: true,
+    bdo: {
+      pubKey: keys2.pubKey,
+      foo: "bar",
+      baz: "bop",
+      public: "pub"
+    }
+  };
+
+  payload.signature = await sessionless.sign(payload.timestamp + payload.pubKey + anotherHash);
+
+  const res = await put(`${baseURL}user/create`, payload);
+console.log(res.body);
+  savedUser2 = res.body;
+  res.body.uuid.length.should.equal(36);
+  
+  keysToReturn = keys;
+});
+
+
 it('should update bdo', async () => {
   const timestamp = new Date().getTime() + '';
   const uuid = savedUser.uuid;
 
   const newBDO = {
+    pubKey: keys.pubKey,
     foo: "bar",
     baz: "updated"
   };
@@ -89,12 +124,66 @@ console.log(res.body);
   res.body.bdo.baz.should.equal("updated");   
 });
 
+it('should update a public bdo', async () => {
+  keysToReturn = keys2;
+  const timestamp = new Date().getTime() + '';
+  const uuid = savedUser2.uuid;
+
+  const newBDO = {
+    pubKey: keys2.pubKey,
+    foo: "bar",
+    baz: "public"
+  };
+
+  const signature = await sessionless.sign(timestamp + uuid + anotherHash);
+  const payload = {
+    timestamp, 
+    uuid, 
+    hash: anotherHash, 
+    bdo: newBDO,
+    public: true,
+    pubKey: keys2.pubKey, 
+    signature
+  };
+
+  const res = await put(`${baseURL}user/${savedUser2.uuid}/bdo`, payload);
+console.log(res.body);
+  res.body.bdo.baz.should.equal("public");
+  keysToReturn = keys;
+});
+
+it('should get a public bdo', async () => {
+  keysToReturn = keys;
+  const timestamp = new Date().getTime() + '';
+  const uuid = savedUser.uuid;
+
+  const signature = await sessionless.sign(timestamp + uuid + hash);
+
+  const res = await get(`${baseURL}user/${uuid}/bdo?timestamp=${timestamp}&signature=${signature}&hash=${hash}&pubKey=${keys2.pubKey}`);
+console.log(res.body);
+  res.body.bdo.baz.should.equal("public");   
+});
+
 it('should delete a user', async () => {
   const timestamp = new Date().getTime() + '';
   const uuid = savedUser.uuid;
 
   const signature = await sessionless.sign(timestamp + uuid + hash);
   const payload = {timestamp, uuid, hash, signature};
+
+
+  const res = await _delete(`${baseURL}user/delete`, payload);
+console.log(res.body);
+  res.status.should.equal(200);
+});
+
+it('should delete another user', async () => {
+  keysToReturn = keys2;
+  const timestamp = new Date().getTime() + '';
+  const uuid = savedUser2.uuid;
+
+  const signature = await sessionless.sign(timestamp + uuid + anotherHash);
+  const payload = {timestamp, uuid, hash: anotherHash, signature};
 
 
   const res = await _delete(`${baseURL}user/delete`, payload);

@@ -17,6 +17,7 @@ const gk = () => {
 };
 
 const SUBDOMAIN = process.env.SUBDOMAIN || 'dev';
+fount.baseURL = `${SUBDOMAIN}.fount.allyabase.com/`;
 
 const continuebeeURL = `https://${SUBDOMAIN}.continuebee.allyabase.com/`;
 
@@ -26,15 +27,22 @@ const repeat = (func) => {
 
 const bootstrap = async () => {
   try {
-    await user.getUserByUUID('bdo');
-    sessionless.getKeys = db.getKeys;
-  } catch(err) {
-    const fountUUID = await fount.createUser(db.saveKeys, db.getKeys);
-    const bdo = {
-      uuid: 'bdo',
-      fountUUID
+    const { fountUUID = uuid, fountPubKey = pubKey } = await fount.createUser(db.saveKeys, db.getKeys);
+    const spellbook = await bdo.getBDO(bdoUUID, bdoHash, fountPubKey);
+    const addie = {
+      uuid: 'addie',
+      fountUUID,
+      fountPubKey,
+      bdoUUID,
+      spellbook
     };
-    await db.saveUser(bdo);
+
+    if(!addie.fountUUID || !addie.bdoUUID || !spellbook) {
+      throw new Error('bootstrap failed');
+    }
+
+    await db.saveUser(addie);
+  } catch(err) {
     repeat(bootstrap);
   }
 };
@@ -46,22 +54,6 @@ sessionless.generateKeys(sk, gk);
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-fount.baseURL = `${SUBDOMAIN}.fount.allyabase.com`;
-
-try {
-  await user.getUserByUUID('addie');
-  sessionless.getKeys = db.getKeys;
-} catch(err) {
-  setTimeout(async () => {
-    const fountUUID = await fount.createUser(db.saveKeys, db.getKeys);
-    const bdo = {
-      uuid: 'bdo',
-      fountUUID
-    };
-    await db.saveUser(addie);
-  }, 5000);
-}
 
 app.use((req, res, next) => {
 console.log('got request');
@@ -78,6 +70,8 @@ app.put('/user/create', async (req, res) => {
     const body = req.body;
     const hash = body.hash;
     const newBDO = body.bdo;
+    const pub = body.public;
+    const pubKey = body.pubKey;
     
     const resp = await fetch(`${continuebeeURL}user/create`, {
       method: 'post',
@@ -93,7 +87,7 @@ app.put('/user/create', async (req, res) => {
     const uuid = user.userUUID;
 
     if(newBDO) {
-      const response = await bdo.putBDO(uuid, bdo, hash);
+      const response = await bdo.putBDO(uuid, newBDO, hash, pub ? pubKey : null);
       if(!response) {
         res.status = 404;
         return res.send({error: 'not found'});
@@ -118,6 +112,8 @@ console.log('putting bdo');
     const body = req.body;
     const timestamp = body.timestamp;
     const hash = body.hash;
+    const pub = body.pub;
+    const pubKey = body.pubKey;
     const signature = body.signature;
     
     const resp = await fetch(`${continuebeeURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
@@ -126,8 +122,19 @@ console.log(resp.status);
       res.status = 403;
       return res.send({error: 'Auth error'});
     }
+  
+    if(pub) {
+      const existingBDO = await bdo.getBDO(uuid, hash);
+      if(existingBDO && existingBDO.pubKey !== pubKey) {
+console.log('this is failing');
+console.log(existingBDO.pubKey);
+console.log(pubKey);
+        res.status = 403;
+        return res.send({error: 'Auth error'});
+      }
+    }
 
-    const newBDO = await bdo.putBDO(uuid, body.bdo, hash);
+    const newBDO = await bdo.putBDO(uuid, body.bdo, hash, pubKey);
     return res.send({
       uuid,
       bdo: newBDO
@@ -146,6 +153,7 @@ console.log('get bdo');
     const timestamp = req.query.timestamp;
     const signature = req.query.signature;
     const hash = req.query.hash;
+    const pubKey = req.query.pubKey;
 
     const resp = await fetch(`${continuebeeURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
 console.log(resp.status);
@@ -154,7 +162,7 @@ console.log(resp.status);
       return res.send({error: 'Auth error'});
     }
 
-    const newBDO = await bdo.getBDO(uuid, hash);
+    const newBDO = await bdo.getBDO(uuid, hash, pubKey);
     return res.send({
       uuid, 
       bdo: newBDO

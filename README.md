@@ -64,7 +64,7 @@ signature message is: timestamp + pubKey + hash</code></summary>
 </details>
 
 <details>
-  <summary><code>PUT</code> <code><b>/user/:uuid/bdo</b></code> <code>Puts a user's bdoerences
+  <summary><code>PUT</code> <code><b>/user/:uuid/bdo</b></code> <code>Puts a user's bdo. If public is true, and pubKey is sent, it will make the BDO available to anyone who queries for that public key.
 signature message is:  timestamp + userUUID + hash</code></summary>
 
 ##### Parameters
@@ -75,6 +75,8 @@ signature message is:  timestamp + userUUID + hash</code></summary>
 > | userUUID     |  true     | string                  | the user's uuid
 > | hash         |  true     | string                  | the old hash to replace
 > | bdo          |  true     | object                  | the bdo to save
+> | public       |  false    | bool                    | whether the bdo should be publicly availbale
+> | pubKey       |  false    | string                  | the user's pubKey to map to the bdo
 > | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
 
@@ -94,7 +96,7 @@ signature message is:  timestamp + userUUID + hash</code></summary>
 </details>
 
 <details>
- <summary><code>GET</code> <code><b>/user/:uuid/bdo?timestamp=<timestamp>&hash=<hash>&signature=<signature of (timestamp + uuid + hash)></b></code> <code>Gets a user's bdoerences.</code></summary>
+ <summary><code>GET</code> <code><b>/user/:uuid/bdo?timestamp=<timestamp>&hash=<hash>&signature=<signature of (timestamp + uuid + hash)></b></code> <code>Gets the user's bdo, or a pubKey's bdo.</code></summary>
 
 ##### Parameters
 
@@ -102,7 +104,7 @@ signature message is:  timestamp + userUUID + hash</code></summary>
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
 > | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
 > | hash         |  true     | string                  | the state hash saved client side
-> | pubKeyForBDO |  true     | string                  | the pubKey that the BDO maps to
+> | pubKeyForBDO |  false    | string                  | the pubKey that the BDO maps to
 > | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
 
 

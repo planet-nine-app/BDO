@@ -1,13 +1,13 @@
 import db from '../persistence/db.js';
 
-const prefs = {
-  getBDO: async (uuid, hash) => {
-    const bdo = await db.getBDO(uuid, hash);
-    return bdo;
+const bdo = {
+  getBDO: async (uuid, hash, pubKey) => {
+    const foundBDO = await db.getBDO(uuid, hash, pubKey);
+    return foundBDO;
   },
 
-  putBDO: async (uuid, newBDO, hash) => {
-    const resp = await db.putBDO(uuid, newBDO, hash);
+  putBDO: async (uuid, newBDO, hash, pubKey) => {
+    const resp = await db.putBDO(uuid, newBDO, hash, pubKey);
 
     return resp;
   },
@@ -17,4 +17,4 @@ const prefs = {
   }
 };
 
-export default prefs;
+export default bdo;

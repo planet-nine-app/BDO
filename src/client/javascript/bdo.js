@@ -52,11 +52,20 @@ console.log(user);
     return uuid;
   },
 
-  updateBDO: async (uuid, hash, BDO) => {
+  updateBDO: async (uuid, hash, newBDO, pub) => {
     const timestamp = new Date().getTime() + '';
+    const keys = await sessionless.getKeys();
 
     const signature = await sessionless.sign(timestamp + uuid + hash);
-    const payload = {timestamp, uuid, hash, BDO, signature};
+    const payload = {
+      timestamp, 
+      uuid, 
+      hash, 
+      bdo: newBDO, 
+      public: pub,
+      pubKey: keys.pubKey,
+      signature
+    };
 
     const res = await put(`${bdo.baseURL}user/${uuid}/bdo`, payload);
     const user = res.json();
@@ -64,12 +73,18 @@ console.log(user);
     return user;
   },
 
-  getBDO: async (uuid, hash) => {
+  getBDO: async (uuid, hash, pubKey) => {
     const timestamp = new Date().getTime() + '';
 
     const signature = await sessionless.sign(timestamp + uuid + hash);
 
-    const res = await get(`${bdo.baseURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
+    let getURL = `${bdo.baseURL}user/${uuid}/bdo?timestamp=${timestamp}&hash=${hash}&signature=${signature}`;
+    if(pubKey) {
+      const keys = await sessionless.getKeys();
+      getURL = `${getURL}&pubKey=${pubKey}`;
+    }
+
+    const res = await get(getURL);
     const user = res.json();
    
     return user;

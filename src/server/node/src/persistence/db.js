@@ -7,14 +7,25 @@ const client = await createClient()
   .connect();
 
 const db = {
-  getBDO: async (uuid, hash) => {
-    const bdo = await client.get(`bdo:${uuid}_${hash}`);
+  getBDO: async (uuid, hash, pubKey) => {
+console.log('getting: ', hash);
+    const queryString = pubKey ? `bdo:${pubKey}` : `bdo:${uuid}_${hash}`;
+console.log('should get bdo for: ', pubKey ? 'pubKey' : 'hash');
+console.log(queryString);
+    const bdo = await client.get(queryString);
+console.log(bdo);
     const parsedBDO = JSON.parse(bdo);
     return parsedBDO;
   },
 
-  putBDO: async (uuid, bdo, hash) => {
-    await client.set(`bdo:${uuid}_${hash}`, JSON.stringify(bdo));
+  putBDO: async (uuid, bdo, hash, pubKey) => {
+console.log('putting', bdo, 'for', hash);
+    const hashQueryString = `bdo:${uuid}_${hash}`;
+    await client.set(hashQueryString, JSON.stringify(bdo));
+    if(pubKey) {
+console.log('saving pubKey bdo for: ', `bdo:${pubKey}`);
+      await client.set(`bdo:${pubKey}`, JSON.stringify(bdo));
+    }
     return bdo;
   },
 
