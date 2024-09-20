@@ -28,6 +28,12 @@ console.log('saving pubKey bdo for: ', `bdo:${pubKey}`);
     }
     return bdo;
   },
+  
+  getSpellbooks: async (hash) => {
+    const bdo = await client.get(`bdo:bdo_${hash}`);
+
+    return [bdo.spellbook];
+  },
 
   deleteBDO: async (uuid, hash) => {
     const resp = await client.del(`bdo:${uuid}_${hash}`);

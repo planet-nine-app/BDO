@@ -173,6 +173,31 @@ console.warn(err);
   }
 });
 
+app.get('/user/:uuid/spellbooks', async (req, res) => {
+console.log('get spellbooks');
+  try {
+    const uuid = req.params.uuid;
+    const timestamp = req.query.timestamp;
+    const signature = req.query.signature;
+    const hash = req.query.hash;
+
+    const resp = await fetch(`${continuebeeURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
+console.log(resp.status);
+    if(resp.status !== 200) {
+      res.status = 403;
+      return res.send({error: 'Auth error'});
+    }
+
+    const spellbooks = await bdo.getSpellbooks();
+    return res.send({spellbooks});
+  } catch(err) {
+console.warn(err);
+    res.status(404);
+    return res.send({error: 'not found'});
+  }
+});
+
+
 app.post('/magic/spell/:spellName', async (req, res) => {
   try {
     const spellName = req.params.spell;

@@ -11,6 +11,12 @@ const bdo = {
 
     return resp;
   },
+  
+  getSpellbooks: async () => {
+    const resp = await db.getSpellbooks();
+    
+    return resp;
+  },
 
   deleteBDO: async (uuid, hash) => {
     return (await db.deleteBDO(uuid, hash));

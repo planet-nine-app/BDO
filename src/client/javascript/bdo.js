@@ -85,9 +85,21 @@ console.log(user);
     }
 
     const res = await get(getURL);
-    const user = res.json();
+    const user = await res.json();
    
     return user;
+  },
+
+  getSpellbooks: async (uuid, hash) => {
+    const timestamp = new Date().getTime() + '';
+
+    const signature = await sessionless.sign(timestamp + uuid + hash);
+
+    let getURL = `${bdo.baseURL}user/${uuid}/spellbooks?timestamp=${timestamp}&hash=${hash}&signature=${signature}`;
+
+    const res = await get(getURL);
+    const spellbooks = await res.json();
+    return spellbooks.spellbooks;
   },
 
   deleteUser: async (uuid, hash) => {
@@ -100,6 +112,7 @@ console.log(user);
     const res = await _delete(`${bdo.baseURL}user/delete`, payload);
     return res.status === 200;
   }
+
 };
 
 export default bdo;
