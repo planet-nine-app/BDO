@@ -17,7 +17,7 @@ const gk = () => {
 };
 
 const SUBDOMAIN = process.env.SUBDOMAIN || 'dev';
-fount.baseURL = `${SUBDOMAIN}.fount.allyabase.com/`;
+fount.baseURL = process.env.LOCALHOST ? 'http://localhost:3006/' : `${SUBDOMAIN}.fount.allyabase.com/`;
 
 const continuebeeURL = `https://${SUBDOMAIN}.continuebee.allyabase.com/`;
 
@@ -27,21 +27,22 @@ const repeat = (func) => {
 
 const bootstrap = async () => {
   try {
-    const { fountUUID = uuid, fountPubKey = pubKey } = await fount.createUser(db.saveKeys, db.getKeys);
-    const spellbook = await bdo.getBDO(bdoUUID, bdoHash, fountPubKey);
+    const fountUser = await fount.createUser(db.saveKeys, db.getKeys);
     const bdo = {
       uuid: 'bdo',
-      fountUUID,
-      fountPubKey,
-      spellbook
+      fountUUID: fountUser.uuid,
+      fountPubKey: fountUser.pubKey
     };
 
-    if(!bdo.fountUUID || !spellbook) {
+console.log(bdo);
+
+    if(!bdo.fountUUID) {
       throw new Error('bootstrap failed');
     }
 
-    await db.saveUser(bdo);
+    await db.putBDO('bdo', bdo, 'bdo');
   } catch(err) {
+console.warn(err);
     repeat(bootstrap);
   }
 };
@@ -188,7 +189,37 @@ console.log(resp.status);
       return res.send({error: 'Auth error'});
     }
 
+console.log('about to get spellbooks');
     const spellbooks = await bdo.getSpellbooks();
+    return res.send({spellbooks});
+  } catch(err) {
+console.warn(err);
+    res.status(404);
+    return res.send({error: 'not found'});
+  }
+});
+
+app.put('/user/:uuid/spellbooks', async (req, res) => {
+console.log('putting spellbook');
+  try {
+    const uuid = req.params.uuid;
+    const body = req.body;
+    const timestamp = body.timestamp;
+    const signature = body.signature;
+    const hash = body.hash;
+    const spellbook = body.spellbook;
+
+console.log('should save spellbook', spellbook.spellbookName);
+
+    const resp = await fetch(`${continuebeeURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
+console.log(resp.status);
+    if(resp.status !== 200) {
+      res.status = 403;
+      return res.send({error: 'Auth error'});
+    }
+
+console.log('about to get spellbooks');
+    const spellbooks = await bdo.putSpellbook(spellbook);
     return res.send({spellbooks});
   } catch(err) {
 console.warn(err);

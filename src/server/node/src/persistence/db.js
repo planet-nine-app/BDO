@@ -29,10 +29,23 @@ console.log('saving pubKey bdo for: ', `bdo:${pubKey}`);
     return bdo;
   },
   
-  getSpellbooks: async (hash) => {
-    const bdo = await client.get(`bdo:bdo_${hash}`);
+  getSpellbooks: async () => {
+    const spellbooksString = (await client.get(`spellbooks`)) || '[]';
+    const spellbooks = JSON.parse(spellbooksString);
 
-    return [bdo.spellbook];
+    return spellbooks;
+  },
+
+  putSpellbook: async (spellbook) => {
+    if(!spellbook || !spellbook.spellbookName) {
+      throw new Error('malformed spellbok');
+    }
+    const spellbooksString = (await client.get('spellbooks')) || '[]';
+    const spellbooks = JSON.parse(spellbooksString);
+    spellbooks.push(spellbook);
+    await client.set(`spellbooks`, JSON.stringify(spellbooks));
+
+    return spellbooks;
   },
 
   deleteBDO: async (uuid, hash) => {

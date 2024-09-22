@@ -33,7 +33,8 @@ const bdo = {
   baseURL: 'https://dev.bdo.allyabase.com/',
 
   createUser: async (hash, newBDO, saveKeys, getKeys) => {
-    const keys = await sessionless.generateKeys(saveKeys, getKeys);
+    const keys = (await getKeys()) || (await sessionless.generateKeys(saveKeys, getKeys))
+    sessionless.getKeys = getKeys;
 
     const payload = {
       timestamp: new Date().getTime() + '',
@@ -98,6 +99,26 @@ console.log(user);
     let getURL = `${bdo.baseURL}user/${uuid}/spellbooks?timestamp=${timestamp}&hash=${hash}&signature=${signature}`;
 
     const res = await get(getURL);
+    const spellbooks = await res.json();
+    return spellbooks.spellbooks;
+  },
+
+  putSpellbook: async (uuid, hash, spellbook) => {
+    const timestamp = new Date().getTime() + '';
+
+    const signature = await sessionless.sign(timestamp + uuid + hash);
+
+    const payload = {
+      timestamp,
+      uuid,
+      hash,
+      signature,
+      spellbook
+    };
+
+    const putURL = `${bdo.baseURL}user/${uuid}/spellbooks`;
+    
+    const res = await put(putURL, payload);
     const spellbooks = await res.json();
     return spellbooks.spellbooks;
   },

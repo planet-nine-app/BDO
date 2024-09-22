@@ -18,6 +18,12 @@ const bdo = {
     return resp;
   },
 
+  putSpellbook: async (spellbook) => {
+    const resp = await db.putSpellbook(spellbook);
+
+    return resp;
+  },
+
   deleteBDO: async (uuid, hash) => {
     return (await db.deleteBDO(uuid, hash));
   }

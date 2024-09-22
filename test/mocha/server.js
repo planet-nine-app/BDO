@@ -164,6 +164,17 @@ console.log(res.body);
   res.body.bdo.baz.should.equal("public");   
 });
 
+it('should get spellbooks', async () => {
+  const timestamp = new Date().getTime() + '';
+  const uuid = savedUser.uuid;
+
+  const signature = await sessionless.sign(timestamp + uuid + hash);
+
+  const res = await get(`${baseURL}user/${uuid}/spellbooks?timestamp=${timestamp}&signature=${signature}&hash=${hash}`);
+
+  res.body.spellbooks.length.should.equal(0);
+});
+
 it('should delete a user', async () => {
   const timestamp = new Date().getTime() + '';
   const uuid = savedUser.uuid;
