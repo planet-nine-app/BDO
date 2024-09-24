@@ -31,10 +31,9 @@ const bootstrap = async () => {
     const bdo = {
       uuid: 'bdo',
       fountUUID: fountUser.uuid,
-      fountPubKey: fountUser.pubKey
+      fountPubKey: fountUser.pubKey,
+      ordinal: 0
     };
-
-console.log(bdo);
 
     if(!bdo.fountUUID) {
       throw new Error('bootstrap failed');
@@ -56,7 +55,6 @@ app.use(cors());
 app.use(express.json());
 
 app.use((req, res, next) => {
-console.log('got request');
   const requestTime = +req.query.timestamp || +req.body.timestamp;
   const now = new Date().getTime();
   if(Math.abs(now - requestTime) > config.allowedTimeDifference) {
@@ -231,8 +229,9 @@ console.warn(err);
 
 app.post('/magic/spell/:spellName', async (req, res) => {
   try {
-    const spellName = req.params.spell;
-    const spell = req.body.spell;
+    const spellName = req.params.spellName;
+console.log('got spell req', spellName);
+    const spell = req.body;
 
     switch(spellName) {
       case 'joinup': const joinupResp = await MAGIC.joinup(spell);
@@ -243,9 +242,11 @@ app.post('/magic/spell/:spellName', async (req, res) => {
         break;
     }
 
+console.log('spell not found');
     res.status(404);
     res.send({error: 'spell not found'});
   } catch(err) {
+console.warn(err);
     res.status(404);
     res.send({error: 'not found'});
   }

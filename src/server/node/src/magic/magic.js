@@ -9,12 +9,22 @@ const fountURL = 'http://localhost:3006/';
 
 const MAGIC = {
   joinup: async (spell) => {
-    const gateway = await gatewayForSpell(spell.spellName);
+    const gateway = await MAGIC.gatewayForSpell(spell.spell);
     spell.gateways.push(gateway);
+    const spellName = spell.spell;
 
-    const spellbook = await db.get('spellbook');
-    const nextIndex = spellbook.destinations.indexOf(spellbook.destinations.find(($) => $.stopName === 'bdo'));
-    const nextDestination = spellbook.destinations[nextIndex].stopURL + '/' + spell.spellName;
+console.log('about to get bdo');
+    const bdo = await db.getBDO('bdo', 'bdo');
+    const spellbooks = await db.getSpellbooks();
+    const spellbook = spellbooks.filter(spellbook => spellbook[spellName]).pop();
+    if(!spellbook) {
+      throw new Error('spellbook not found');
+    }
+
+console.log('about to get spell entry');
+    const spellEntry = spellbook[spell.spell];
+    const currentIndex = spellEntry.destinations.indexOf(spellEntry.destinations.find(($) => $.stopName === 'bdo'));
+    const nextDestination = spellEntry.destinations[currentIndex + 1].stopURL + spellName;
 
     const res = await MAGIC.forwardSpell(spell, nextDestination);
     const body = await res.json();
@@ -35,7 +45,7 @@ const MAGIC = {
   },
 
   linkup: async (spell) => {
-    const gateway = await gatewayForSpell(spell.spellName);
+    const gateway = await MAGIC.gatewayForSpell(spell.spellName);
     spell.gateways.push(gateway);
 
     const res = await MAGIC.forwardSpell(spell, fountURL);
@@ -44,10 +54,10 @@ const MAGIC = {
   },
 
   gatewayForSpell: async (spellName) => {
-    const bdo = await db.getUser('bdo');
+    const bdo = await db.getBDO('bdo', 'bdo');
     const gateway = {
       timestamp: new Date().getTime() + '',
-      uuid: bdo.uuid, 
+      uuid: bdo.fountUUID, 
       minimumCost: 20,
       ordinal: bdo.ordinal
     };      
