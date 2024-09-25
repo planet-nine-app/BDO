@@ -19,7 +19,7 @@ const gk = () => {
 const SUBDOMAIN = process.env.SUBDOMAIN || 'dev';
 fount.baseURL = process.env.LOCALHOST ? 'http://localhost:3006/' : `${SUBDOMAIN}.fount.allyabase.com/`;
 
-const continuebeeURL = `https://${SUBDOMAIN}.continuebee.allyabase.com/`;
+const continuebeeURL = process.env.LOCALHOST ? 'http://localhost:2999/' : `https://${SUBDOMAIN}.continuebee.allyabase.com/`;
 
 const repeat = (func) => {
   setTimeout(func, 2000);
@@ -230,21 +230,19 @@ console.warn(err);
 app.post('/magic/spell/:spellName', async (req, res) => {
   try {
     const spellName = req.params.spellName;
-console.log('got spell req', spellName);
     const spell = req.body;
-
-    switch(spellName) {
-      case 'joinup': const joinupResp = await MAGIC.joinup(spell);
-        return res.send(joinupResp);
-        break;
-      case 'linkup': const linkupResp = await MAGIC.linkup(spell);
-        return res.send(linkupResp);
-        break;
+    
+    if(!MAGIC[spellName]) {
+console.log('sending this back');
+      res.status(404); 
+      res.send({error: 'spell not found'});
     }
-
-console.log('spell not found');
-    res.status(404);
-    res.send({error: 'spell not found'});
+    
+    let spellResp = {};
+    spellResp = await MAGIC[spellName](spell);
+console.log('spellResp', spellResp);
+    res.status(spellResp.success ? 200 : 900);
+    return res.send(spellResp);
   } catch(err) {
 console.warn(err);
     res.status(404);
