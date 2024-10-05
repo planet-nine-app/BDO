@@ -36,7 +36,7 @@ const bootstrap = async () => {
     };
 
     if(!bdo.fountUUID) {
-      throw new Error('bootstrap failed');
+      throw new Error('BDO bootstrap failed because of no fountUUID');
     }
 
     await db.putBDO('bdo', bdo, 'bdo');
