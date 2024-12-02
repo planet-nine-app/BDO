@@ -22,8 +22,8 @@ pub struct BDO {
 
 impl BDO {
     pub fn new(base_url: Option<String>, sessionless: Option<Sessionless>) -> Self {
-        Fount {
-            base_url: base_url.unwrap_or("https://dev.fount.allyabase.com/".to_string()),
+        BDO {
+            base_url: base_url.unwrap_or("https://dev.bdo.allyabase.com/".to_string()),
             client: Client::new(),
             sessionless: sessionless.unwrap_or(Sessionless::new()),
         }
@@ -65,7 +65,7 @@ impl BDO {
             .to_string()
     }
 
-    pub async fn create_user(&self, hash: &Stringstr, bdo: &Value) -> Result<BDOUser, Box<dyn std::error::Error>> {
+    pub async fn create_user(&self, hash: &str, bdo: &Value) -> Result<BDOUser, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let pub_key = self.sessionless.public_key().to_hex();
         let signature = self.sessionless.sign(&format!("{}{}", timestamp, pub_key)).to_hex();
@@ -83,18 +83,18 @@ impl BDO {
         Ok(user)
     }
 
-    pub async fn update_bdo(&self, uuid: &Stringstr, hash: &Stringstr, bdo: &Value, is_public: &bool) -> Result<BDOUser, Box<dyn std::error::Error>> {
+    pub async fn update_bdo(&self, uuid: &str, hash: &str, bdo: &Value, is_public: &bool) -> Result<BDOUser, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let message = format!("{}{}{}", timestamp, uuid, hash);
-        let signature = self.sessionless.sign(message);
+        let signature = self.sessionless.sign(message).to_hex();
 
         let payload = json!({
-            timestamp,
-            uuid,
-            hash,
+            "timestamp": timestamp,
+            "uuid": uuid,
+            "hash": hash,
             "pub": is_public,
-            "pubKey": self.sessionless.public_key.to_hex(),
-            signature
+            "pubKey": self.sessionless.public_key().to_hex(),
+            "signature": signature
         });
 
         let url = format!("{}user/{}/bdo", self.base_url, uuid);
@@ -104,7 +104,7 @@ impl BDO {
         Ok(user)
     }
 
-    pub async fn get_bdo(&self, uuid: &Stringstr, hash: &Stringstr) -> Result<BDOUser, Box<dyn std::error::Error>> {
+    pub async fn get_bdo(&self, uuid: &str, hash: &str) -> Result<BDOUser, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let message = format!("{}{}{}", timestamp, uuid, hash);
         let signature = self.sessionless.sign(message);
@@ -113,22 +113,22 @@ impl BDO {
         let res = self.get(&url);
         let user: BDOUser = res.json().await?;
  
-        Ok(user);
+        Ok(user)
     }
 
-    pub async fn get_spellbooks(&self, uuid: &Stringstr, hash: &Stringstr) -> Result<Spellbook[], Box<dyn std::error::Error>> {
+    pub async fn get_spellbooks(&self, uuid: &str, hash: &str) -> Result<Vec<Spellbook>, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let message = format!("{}{}{}", timestamp, uuid, hash);
         let signature = self.sessionless.sign(message);
 
         let url = format!("{}user/{}spellbooks?timestamp={}&hash={}&signature={}", self.base_url, uuid, timestamp, hash, signature);
         let res = self.get(&url);
-        let spellbooks: [Spellbook] = res.json().await?;
+        let spellbooks: Vec<Spellbook> = res.json().await?;
  
         Ok(spellbooks);
     }
 
-    pub async fn put_spellbook(&self, uuid: &Stringstr, hash: &Stringstr, spellbook: &Spellbook) -> Result<Spellbook[], Box<dyn std::error::Error>> {
+    pub async fn put_spellbook(&self, uuid: &str, hash: &str, spellbook: &Spellbook) -> Result<Vec<Spellbook>, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let message = format!("{}{}{}", timestamp, uuid, hash);
         let signature = self.sessionless.sign(message);
@@ -143,7 +143,7 @@ impl BDO {
 
         let url = format!("{}user/{}/spellbooks", self.base_url, uuid);
         let res = self.put(&url, serde_json::Value::Object(payload)).await?;
-        let spellbooks: Spellbook[] = res.json().await?;
+        let spellbooks: Vec<Spellbook> = res.json().await?;
 
         Ok(spellbooks)
     }
