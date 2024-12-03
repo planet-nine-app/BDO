@@ -12,7 +12,7 @@ use sessionless::{Sessionless, Signature};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::collections::HashMap;
 use std::option::Option;
-use crate::structs::{BDOUser};
+use crate::structs::{BDOUser, Spellbook, SuccessResult};
 
 pub struct BDO {
     base_url: String,
@@ -68,16 +68,22 @@ impl BDO {
     pub async fn create_user(&self, hash: &str, bdo: &Value) -> Result<BDOUser, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let pub_key = self.sessionless.public_key().to_hex();
-        let signature = self.sessionless.sign(&format!("{}{}", timestamp, pub_key)).to_hex();
+        let signature = self.sessionless.sign(&format!("{}{}{}", timestamp, pub_key, hash)).to_hex();
         
         let payload = json!({
             "timestamp": timestamp,
             "pubKey": pub_key,
+            "hash": hash,
+            "bdo": bdo,
             "signature": signature
         }).as_object().unwrap().clone();
 
+dbg!("{}", payload.clone());
+
         let url = format!("{}user/create", self.base_url);
+dbg!("{}", &url);
         let res = self.put(&url, serde_json::Value::Object(payload)).await?;
+dbg!("{}", &res);
         let user: BDOUser = res.json().await?;
 
         Ok(user)
@@ -94,8 +100,9 @@ impl BDO {
             "hash": hash,
             "pub": is_public,
             "pubKey": self.sessionless.public_key().to_hex(),
+            "bdo": bdo,
             "signature": signature
-        });
+        }).as_object().unwrap().clone();
 
         let url = format!("{}user/{}/bdo", self.base_url, uuid);
         let res = self.put(&url, serde_json::Value::Object(payload)).await?;
@@ -107,14 +114,30 @@ impl BDO {
     pub async fn get_bdo(&self, uuid: &str, hash: &str) -> Result<BDOUser, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let message = format!("{}{}{}", timestamp, uuid, hash);
-        let signature = self.sessionless.sign(message);
+        let signature = self.sessionless.sign(message).to_hex();
 
-        let url = format!("{}user/{}bdo?timestamp={}&hash={}&signature={}", self.base_url, uuid, timestamp, hash, signature);
-        let res = self.get(&url);
+        let url = format!("{}user/{}/bdo?timestamp={}&hash={}&signature={}", self.base_url, uuid, timestamp, hash, signature);
+        let res = self.get(&url).await?;
         let user: BDOUser = res.json().await?;
  
         Ok(user)
     }
+
+    pub async fn get_public_bdo(&self, uuid: &str, hash: &str, pub_key: &str) -> Result<BDOUser, Box<dyn std::error::Error>> {
+        let timestamp = Self::get_timestamp();
+        let message = format!("{}{}{}", timestamp, uuid, hash);
+        let signature = self.sessionless.sign(message).to_hex();
+
+        let url = format!("{}user/{}/bdo?timestamp={}&hash={}&signature={}&pubKey={}", self.base_url, uuid, timestamp, hash, signature, pub_key);
+dbg!("{}", &url);
+dbg!("{}", &self.sessionless.public_key().to_hex());
+        let res = self.get(&url).await?;
+        let user: BDOUser = res.json().await?;
+ 
+        Ok(user)
+    }
+
+
 
     pub async fn get_spellbooks(&self, uuid: &str, hash: &str) -> Result<Vec<Spellbook>, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
@@ -122,24 +145,24 @@ impl BDO {
         let signature = self.sessionless.sign(message);
 
         let url = format!("{}user/{}spellbooks?timestamp={}&hash={}&signature={}", self.base_url, uuid, timestamp, hash, signature);
-        let res = self.get(&url);
+        let res = self.get(&url).await?;
         let spellbooks: Vec<Spellbook> = res.json().await?;
  
-        Ok(spellbooks);
+        Ok(spellbooks)
     }
 
     pub async fn put_spellbook(&self, uuid: &str, hash: &str, spellbook: &Spellbook) -> Result<Vec<Spellbook>, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let message = format!("{}{}{}", timestamp, uuid, hash);
-        let signature = self.sessionless.sign(message);
+        let signature = self.sessionless.sign(message).to_hex();
 
         let payload = json!({
-            timestamp,
-            uuid,
-            hash,
-            spellbook,
-            signature
-        });
+            "timestamp": timestamp,
+            "uuid": uuid,
+            "hash": hash,
+            "spellbook": spellbook,
+            "signature": signature
+        }).as_object().unwrap().clone();
 
         let url = format!("{}user/{}/spellbooks", self.base_url, uuid);
         let res = self.put(&url, serde_json::Value::Object(payload)).await?;
@@ -156,11 +179,11 @@ impl BDO {
         let payload = json!({
           "timestamp": timestamp,
           "uuid": uuid,
-          hash,
+          "hash": hash,
           "signature": signature
         }).as_object().unwrap().clone();
 
-        let url = format!("{}user/delete", self.base_url, uuid);
+        let url = format!("{}user/{}/delete", self.base_url, uuid);
         let res = self.delete(&url, serde_json::Value::Object(payload)).await?;
         let success: SuccessResult = res.json().await?;
 

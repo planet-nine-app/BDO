@@ -13,8 +13,13 @@ pub struct BDOUser {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all="camelCase")]
 pub struct Spellbook {
-    pub foo: String,
-    pub bar: Value
+    pub spellbookName: String,
+    #[serde(flatten)]
+    spells: serde_json::Value
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SuccessResult {
+    pub success: bool
+} 
 
