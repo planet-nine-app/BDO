@@ -22,6 +22,12 @@ pub struct Spellbook {
     spells: serde_json::Value
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all="camelCase")]
+pub struct Spellbooks {
+    pub spellbooks: Vec<Spellbook>
+}
+
 pub struct BDO {
     base_url: String,
     client: Client,
@@ -150,13 +156,13 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
     pub async fn get_spellbooks(&self, uuid: &str, hash: &str) -> Result<Vec<Spellbook>, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let message = format!("{}{}{}", timestamp, uuid, hash);
-        let signature = self.sessionless.sign(message);
+        let signature = self.sessionless.sign(message).to_hex();
 
-        let url = format!("{}user/{}spellbooks?timestamp={}&hash={}&signature={}", self.base_url, uuid, timestamp, hash, signature);
+        let url = format!("{}user/{}/spellbooks?timestamp={}&hash={}&signature={}", self.base_url, uuid, timestamp, hash, signature);
         let res = self.get(&url).await?;
-        let spellbooks: Vec<Spellbook> = res.json().await?;
+        let spellbooks: Spellbooks = res.json().await?;
  
-        Ok(spellbooks)
+        Ok(spellbooks.spellbooks)
     }
 
     pub async fn put_spellbook(&self, uuid: &str, hash: &str, spellbook: &Spellbook) -> Result<Vec<Spellbook>, Box<dyn std::error::Error>> {
