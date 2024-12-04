@@ -12,7 +12,15 @@ use sessionless::{Sessionless, Signature};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::collections::HashMap;
 use std::option::Option;
-use crate::structs::{BDOUser, Spellbook, SuccessResult};
+use crate::structs::{BDOUser, SuccessResult};
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all="camelCase")]
+pub struct Spellbook {
+    pub spellbookName: String,
+    #[serde(flatten)]
+    spells: serde_json::Value
+}
 
 pub struct BDO {
     base_url: String,
