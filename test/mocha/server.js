@@ -3,7 +3,7 @@ should();
 import sessionless from 'sessionless-node';
 import superAgent from 'superagent';
 
-const baseURL = 'http://127.0.0.1:3003/';
+const baseURL = process.env.DEV ? 'https://dev.bdo.allyabase.com/' : 'http://127.0.0.1:3003/';
 
 const get = async function(path) {
   console.info("Getting " + path);
@@ -172,7 +172,7 @@ it('should get spellbooks', async () => {
 
   const res = await get(`${baseURL}user/${uuid}/spellbooks?timestamp=${timestamp}&signature=${signature}&hash=${hash}`);
 
-  res.body.spellbooks.length.should.equal(0);
+  res.body.spellbooks.length.should.not.equal(0);
 });
 
 it('should delete a user', async () => {
