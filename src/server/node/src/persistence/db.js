@@ -27,7 +27,26 @@ console.log('saving pubKey bdo for: ', `bdo:${pubKey}`);
     }
     return bdo;
   },
-  
+
+  getBases: async () => {
+    const basesString = (await client.get(`allyabases`)) || '{}';
+    const bases = JSON.parse(basesString);
+
+    return spellbooks;
+  },
+
+  putBases: async (newBases) => {
+    if(!newBases) {
+      throw new Error('malformed bases');
+    }
+    const basesString = (await client.get('spellbooks')) || '[]';
+    const bases = JSON.parse(spellbooksString);
+    const updatedBases = {...bases, ...newBases};
+    await client.set(`allyabases`, JSON.stringify(bases));
+
+    return updatedBases;
+  },
+
   getSpellbooks: async () => {
     const spellbooksString = (await client.get(`spellbooks`)) || '[]';
     const spellbooks = JSON.parse(spellbooksString);

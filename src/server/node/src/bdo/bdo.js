@@ -11,6 +11,18 @@ const bdo = {
 
     return resp;
   },
+
+  getBases: async () => {
+    const resp = await db.getBases();
+    
+    return resp;
+  },
+
+  putBases: async (bases) => {
+    const resp = await db.putBases(bases);
+
+    return resp;
+  },
   
   getSpellbooks: async () => {
     const resp = await db.getSpellbooks();

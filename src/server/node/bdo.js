@@ -178,6 +178,60 @@ console.warn(err);
   }
 });
 
+app.get('/user/:uuid/bases', async (req, res) => {
+console.log('get bases');
+  try {
+    const uuid = req.params.uuid;
+    const timestamp = req.query.timestamp;
+    const signature = req.query.signature;
+    const hash = req.query.hash;
+
+    const resp = await fetch(`${continuebeeURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
+console.log(resp.status);
+    if(resp.status !== 200) {
+      res.status = 403;
+      return res.send({error: 'Auth error'});
+    }
+
+console.log('about to get bases');
+    const basess = await bdo.getBases();
+    return res.send({bases});
+  } catch(err) {
+console.warn(err);
+    res.status(404);
+    return res.send({error: 'not found'});
+  }
+});
+
+app.put('/user/:uuid/bases', async (req, res) => {
+console.log('putting bases');
+  try {
+    const uuid = req.params.uuid;
+    const body = req.body;
+    const timestamp = body.timestamp;
+    const signature = body.signature;
+    const hash = body.hash;
+    const bases = body.bases;
+
+console.log('should save bases', bases);
+
+    const resp = await fetch(`${continuebeeURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
+console.log(resp.status);
+    if(resp.status !== 200) {
+      res.status = 403;
+      return res.send({error: 'Auth error'});
+    }
+
+console.log('about to put bases');
+    const bases = await bdo.putBases(bases);
+    return res.send({bases});
+  } catch(err) {
+console.warn(err);
+    res.status(404);
+    return res.send({error: 'not found'});
+  }
+});
+
 app.get('/user/:uuid/spellbooks', async (req, res) => {
 console.log('get spellbooks');
   try {

@@ -151,6 +151,124 @@ signature message is: timestamp + userUUID + hash</code></summary>
 
 </details>
 
+### Special BDOs
+
+There are two special BDOs that users can add to: [spellbooks][magic], and [bases][allyabase].
+Spellbooks define spells, which users can cast to do interesting things through multiple devices, and bases are a subset of those devices that run some or all of the miniservices of allyabase.
+The APIs for these are more or less the same:
+
+<details>
+  <summary><code>PUT</code> <code><b>/user/:uuid/bases</b></code> <code>Puts a user's bases.
+signature message is:  timestamp + userUUID + hash</code></summary>
+
+##### Parameters
+
+> | name         |  required     | data type               | description                                                           |
+> |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
+> | userUUID     |  true     | string                  | the user's uuid
+> | hash         |  true     | string                  | the old hash to replace
+> | bases        |  true     | object                  | the bases to save
+> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
+
+
+##### Responses
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `200`         | `application/json`                | `<bdoerences>`   |
+> | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
+
+##### Example cURL
+
+> ```javascript
+>  curl -X POST -H "Content-Type: application/json" -d '{"timestamp": "right now", "userUUID": "uuid", "hash": "hash", "bdoerences": {"foo": "bar"}, "signature": "signature"}' https://bdo.planetnine.app/user/update-hash
+> ```
+
+</details>
+
+<details>
+ <summary><code>GET</code> <code><b>/user/:uuid/bases?timestamp=<timestamp>&hash=<hash>&signature=<signature of (timestamp + uuid + hash)></b></code> <code>Gets the user's bases.</code></summary>
+
+##### Parameters
+
+> | name         |  required     | data type               | description                                                           |
+> |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
+> | hash         |  true     | string                  | the state hash saved client side
+> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
+
+
+##### Responses
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `200`         | `application/json`                | `{"bdo": <bdo>}`   |
+> | `406`         | `application/json`                | `{"code":"406","message":"Not acceptable"}`                            |
+
+##### Example cURL
+
+> ```javascript
+>  curl -X GET -H "Content-Type: application/json" https://bdo.planetnine.app/user/<uuid>?timestamp=123&hash=hash&pubKey=pubKey&signature=signature 
+> ```
+
+</details>
+
+<details>
+  <summary><code>PUT</code> <code><b>/user/:uuid/spellbook</b></code> <code>Puts a user's spellbook. signature message is:  timestamp + userUUID + hash</code></summary>
+
+##### Parameters
+
+> | name         |  required     | data type               | description                                                           |
+> |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
+> | userUUID     |  true     | string                  | the user's uuid
+> | hash         |  true     | string                  | the old hash to replace
+> | spellbook    |  true     | object                  | the spellbook to save
+> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
+
+
+##### Responses
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `200`         | `application/json`                | `<bdoerences>`   |
+> | `400`         | `application/json`                | `{"code":"400","message":"Bad Request"}`                            |
+
+##### Example cURL
+
+> ```javascript
+>  curl -X POST -H "Content-Type: application/json" -d '{"timestamp": "right now", "userUUID": "uuid", "hash": "hash", "bdoerences": {"foo": "bar"}, "signature": "signature"}' https://bdo.planetnine.app/user/update-hash
+> ```
+
+</details>
+
+<details>
+ <summary><code>GET</code> <code><b>/user/:uuid/spellbooks?timestamp=<timestamp>&hash=<hash>&signature=<signature of (timestamp + uuid + hash)></b></code> <code>Gets the base's spellbooks.</code></summary>
+
+##### Parameters
+
+> | name         |  required     | data type               | description                                                           |
+> |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
+> | hash         |  true     | string                  | the state hash saved client side
+> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
+
+##### Responses
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `200`         | `application/json`                | `{"bdo": <bdo>}`   |
+> | `406`         | `application/json`                | `{"code":"406","message":"Not acceptable"}`                            |
+
+##### Example cURL
+
+> ```javascript
+>  curl -X GET -H "Content-Type: application/json" https://bdo.planetnine.app/user/<uuid>?timestamp=123&hash=hash&pubKey=pubKey&signature=signature 
+> ```
+
+</details>
+
 ## Databases
 
 One of the biggest benefits of Sessionless is that it doesn't need to store any sensitive data.
@@ -176,8 +294,15 @@ To do so they should implement the following methods:
 
 `getBDO()` - Should GET bdoerences.
 
-`deleteUser(uuid)` - Should DELETE a user by calling /user/:uuid.
+`saveBases(bases)` - Should PUT the passed in bases.
 
+`getBases()` - Should GET bases.
+
+`saveSpellbook(spellbook)` - Should PUT the passed in spellbook.
+
+`getSpellbooks()` - Should GET the spellbooks for the base.
+
+`deleteUser(uuid)` - Should DELETE a user by calling /user/:uuid.
 
 ## Use cases
 
@@ -206,6 +331,7 @@ To add to this repo, feel free to make a [pull request][pr].
 [sessionless]: https://www.github.com/planet-nine-app/sessionless
 [bdo]: https://www.github.com/planet-nine-app/BDO
 [magic]: https://www.github.com/planet-nine-app/MAGIC
+[allyabase]: https://www.github.com/planet-nine-app/allyabase
 
 [^1]: The kind of standard use case for this is config for a client application, and that's a fine use case.
 But I thought it would be interesting to leave it more open ended, and have the BDOs map to public keys, and see what people come up with.
