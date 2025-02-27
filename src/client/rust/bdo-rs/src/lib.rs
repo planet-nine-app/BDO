@@ -24,6 +24,12 @@ pub struct Spellbook {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all="camelCase")]
+pub struct Bases {
+    pub bases: serde_json::Value
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all="camelCase")]
 pub struct Spellbooks {
     pub spellbooks: Vec<Spellbook>
 }
@@ -149,6 +155,38 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
         let user: BDOUser = res.json().await?;
  
         Ok(user)
+    }
+
+    pub async fn get_bases(&self, uuid: &str, hash: &str) -> Result<Value, Box<dyn std::error::Error>> {
+        let timestamp = Self::get_timestamp();
+        let message = format!("{}{}{}", timestamp, uuid, hash);
+        let signature = self.sessionless.sign(message).to_hex();
+
+        let url = format!("{}user/{}/bases?timestamp={}&hash={}&signature={}", self.base_url, uuid, timestamp, hash, signature);
+        let res = self.get(&url).await?;
+        let bases: Bases = res.json().await?;
+ 
+        Ok(bases.bases)
+    }
+
+    pub async fn save_bases(&self, uuid: &str, hash: &str, bases: &Bases) -> Result<Value, Box<dyn std::error::Error>> {
+        let timestamp = Self::get_timestamp();
+        let message = format!("{}{}{}", timestamp, uuid, hash);
+        let signature = self.sessionless.sign(message).to_hex();
+
+        let payload = json!({
+            "timestamp": timestamp,
+            "uuid": uuid,
+            "hash": hash,
+            "bases": bases,
+            "signature": signature
+        }).as_object().unwrap().clone();
+
+        let url = format!("{}user/{}/bases", self.base_url, uuid);
+        let res = self.put(&url, serde_json::Value::Object(payload)).await?;
+        let bases: Bases = res.json().await?;
+
+        Ok(bases.bases)
     }
 
 

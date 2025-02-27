@@ -32,17 +32,17 @@ console.log('saving pubKey bdo for: ', `bdo:${pubKey}`);
     const basesString = (await client.get(`allyabases`)) || '{}';
     const bases = JSON.parse(basesString);
 
-    return spellbooks;
+    return bases;
   },
 
   putBases: async (newBases) => {
     if(!newBases) {
       throw new Error('malformed bases');
     }
-    const basesString = (await client.get('spellbooks')) || '[]';
-    const bases = JSON.parse(spellbooksString);
+    const basesString = (await client.get('allyabases')) || '{}';
+    const bases = JSON.parse(basesString);
     const updatedBases = {...bases, ...newBases};
-    await client.set(`allyabases`, JSON.stringify(bases));
+    await client.set(`allyabases`, JSON.stringify(updatedBases));
 
     return updatedBases;
   },

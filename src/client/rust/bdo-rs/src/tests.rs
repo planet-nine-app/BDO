@@ -1,4 +1,4 @@
-use crate::{BDOUser, BDO, Spellbook, SuccessResult};
+use crate::{Bases, BDOUser, BDO, Spellbook, SuccessResult};
 use sessionless::hex::IntoHex;
 use sessionless::hex::FromHex;
 use sessionless::{Sessionless, PrivateKey};
@@ -106,6 +106,46 @@ async fn test_bdo() {
             },
             Err(error) => { 
                 eprintln!("Error occurred get_bdo: {}", error);
+                println!("Error details: {:?}", error);
+                None
+            }
+        }
+    }
+
+    async fn get_bases(bdo: &BDO, saved_user: &BDOUser, hash: &str) -> Option<Value> {
+        let result = bdo.get_bases(&saved_user.uuid, &hash).await;
+    
+        match result {
+            Ok(bases) => {
+                println!("Successfully got bases: {}", bases);
+                assert_eq!(
+                    true,
+                    true
+                );
+                Some(bases)
+            },
+            Err(error) => {
+                eprintln!("Error occurred get_bases: {}", error);
+                println!("Error details: {:?}", error);
+                None
+            }
+        }
+    }
+
+    async fn put_bases(bdo: &BDO, saved_user: &BDOUser, hash: &str, bases: &Bases) -> Option<Value> {
+        let result = bdo.save_bases(&saved_user.uuid, &hash, &bases).await;
+
+        match result {
+            Ok(bases) => {
+                println!("Successfully got bases: {}", bases);
+                assert_eq!(
+                    true,
+                    true
+                );
+                Some(bases)
+            },
+            Err(error) => {
+                eprintln!("Error occurred put_spellbook: {}", error);
                 println!("Error details: {:?}", error);
                 None
             }

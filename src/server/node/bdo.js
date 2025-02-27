@@ -52,7 +52,7 @@ sessionless.generateKeys(sk, gk);
 
 const app = express();
 app.use(cors());
-app.use(express.json(limit: '10mb'}));
+app.use(express.json({limit: '10mb'}));
 
 app.use((req, res, next) => {
   const requestTime = +req.query.timestamp || +req.body.timestamp;
@@ -66,12 +66,14 @@ app.use((req, res, next) => {
 app.put('/user/create', async (req, res) => {
   try {
     const body = req.body;
+    const timestamp = body.timestamp;
     const hash = body.hash;
     const newBDO = body.bdo;
     const pub = body.public;
     const pubKey = body.pubKey;
 
     const authBody = {
+      timestamp,
       hash,
       pubKey,
       signature: body.signature
@@ -194,7 +196,7 @@ console.log(resp.status);
     }
 
 console.log('about to get bases');
-    const basess = await bdo.getBases();
+    const bases = await bdo.getBases();
     return res.send({bases});
   } catch(err) {
 console.warn(err);
@@ -223,8 +225,8 @@ console.log(resp.status);
     }
 
 console.log('about to put bases');
-    const bases = await bdo.putBases(bases);
-    return res.send({bases});
+    const updatedBases = await bdo.putBases(bases);
+    return res.send({bases: updatedBases});
   } catch(err) {
 console.warn(err);
     res.status(404);

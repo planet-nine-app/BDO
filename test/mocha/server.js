@@ -164,6 +164,64 @@ console.log(res.body);
   res.body.bdo.baz.should.equal("public");   
 });
 
+it('should put bases', async () => {
+  const timestamp = new Date().getTime() + '';
+  const uuid = savedUser.uuid;
+  const baseId = sessionless.generateUUID();
+
+  const bases = {};
+  bases[baseId] = {
+    name: 'FOO',
+    description: 'here is the first description',
+    location: {
+      latitude: 10.50900,
+      longitude: 133.90483,
+      postalCode: '12345'
+    },
+    soma: {
+      lexary: [
+        'parties'
+      ],
+      photary: [
+        'music'
+      ],
+      viewary: [
+        'rip the system'
+      ]
+    },
+    dns: {
+      dolores: 'https://dev.dolores.allyabase.com'
+    },
+    joined: true
+  };
+
+  const payload = {
+    timestamp,
+    uuid,
+    hash,
+    bases
+  };
+
+  payload.signature = await sessionless.sign(timestamp + uuid + hash);
+
+  const res = await put(`${baseURL}user/${uuid}/bases`, payload);
+
+console.log('bases are', res.body);
+  Object.keys(res.body.bases).length.should.not.equal(0);
+});
+
+it('should get bases', async () => {
+  const timestamp = new Date().getTime() + '';
+  const uuid = savedUser.uuid;
+
+  const signature = await sessionless.sign(timestamp + uuid + hash);
+
+  const res = await get(`${baseURL}user/${uuid}/bases?timestamp=${timestamp}&signature=${signature}&hash=${hash}`);
+
+console.log('res.body for getting bases', res.body);
+  Object.keys(res.body.bases).length.should.not.equal(0);
+});
+
 it('should get spellbooks', async () => {
   const timestamp = new Date().getTime() + '';
   const uuid = savedUser.uuid;

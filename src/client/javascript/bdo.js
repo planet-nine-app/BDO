@@ -91,6 +91,38 @@ console.log(user);
     return user;
   },
 
+  getBases: async (uuid, hash) => {
+    const timestamp = new Date().getTime() + '';
+
+    const signature = await sessionless.sign(timestamp + uuid + hash);
+
+    let getURL = `${bdo.baseURL}user/${uuid}/bases?timestamp=${timestamp}&hash=${hash}&signature=${signature}`;
+
+    const res = await get(getURL);
+    const bases = await res.json();
+    return bases.bases;
+  },
+
+  saveBases: async (uuid, hash, bases) => {
+    const timestamp = new Date().getTime() + '';
+
+    const signature = await sessionless.sign(timestamp + uuid + hash);
+
+    const payload = {
+      timestamp,
+      uuid,
+      hash,
+      signature,
+      bases
+    };
+
+    const putURL = `${bdo.baseURL}user/${uuid}/bases`;
+    
+    const res = await put(putURL, payload);
+    const receivedBases = await res.json();
+    return receivedBases.bases;
+  },
+
   getSpellbooks: async (uuid, hash) => {
     const timestamp = new Date().getTime() + '';
 
