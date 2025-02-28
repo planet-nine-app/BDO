@@ -168,31 +168,59 @@ it('should put bases', async () => {
   const timestamp = new Date().getTime() + '';
   const uuid = savedUser.uuid;
   const baseId = sessionless.generateUUID();
+  const baseId2 = sessionless.generateUUID();
 
   const bases = {};
   bases[baseId] = {
-    name: 'FOO',
-    description: 'here is the first description',
+    name: 'ent',
+    description: 'A development server located in Germany',
     location: {
-      latitude: 10.50900,
-      longitude: 133.90483,
-      postalCode: '12345'
+      latitude: 51.0,
+      longitude: 9.0,
+      postalCode: '16'
     },
     soma: {
       lexary: [
-        'parties'
+        'art',
+        'film'
       ],
       photary: [
-        'music'
+        'dogs'
       ],
       viewary: [
         'rip the system'
       ]
     },
     dns: {
-      dolores: 'https://dev.dolores.allyabase.com'
+      dolores: 'https://ent.dolores.allyabase.com'
     },
-    joined: true
+    joined: false
+  };
+
+  bases[baseId2] = {
+    name: 'ind',
+    description: 'A development server located in India',
+    location: {
+      latitude: 21.77,
+      longitude: 78.87,
+      postalCode: '804419'
+    },
+    soma: {
+      lexary: [
+        'music',
+        'food'
+      ],
+      photary: [
+        'birds'
+      ],
+      viewary: [
+        'rip the system'
+      ]
+    },
+    dns: {
+      dolores: 'https://ind.dolores.allyabase.com'
+    },
+    joined: false
   };
 
   const payload = {
