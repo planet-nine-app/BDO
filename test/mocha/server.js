@@ -192,7 +192,7 @@ it('should put bases', async () => {
       ]
     },
     dns: {
-      dolores: 'https://ent.dolores.allyabase.com'
+      dolores: 'https://ent.dolores.allyabase.com/'
     },
     joined: false
   };
@@ -218,7 +218,7 @@ it('should put bases', async () => {
       ]
     },
     dns: {
-      dolores: 'https://ind.dolores.allyabase.com'
+      dolores: 'https://ind.dolores.allyabase.com/'
     },
     joined: false
   };
