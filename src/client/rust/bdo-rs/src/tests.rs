@@ -2,28 +2,27 @@ use crate::{Bases, BDOUser, BDO, Spellbook, SuccessResult};
 use sessionless::hex::IntoHex;
 use sessionless::hex::FromHex;
 use sessionless::{Sessionless, PrivateKey};
-use std::collections::HashMap;
 use serde_json::json;
 use serde_json::Value;
 
 #[actix_rt::test]
 async fn test_bdo() {
 
-    let mut saved_user: BDOUser;
-    let mut saved_user2: BDOUser; 
+    let saved_user: BDOUser;
+    let saved_user2: BDOUser;
     let bdo = BDO::new(Some("http://localhost:3003/".to_string()), None);
     let bdo2 = BDO::new(Some("http://localhost:3003/".to_string()), None);
-    let bdo3 = BDO::new(Some("http://localhost:3003/".to_string()), Some(Sessionless::from_private_key(PrivateKey::from_hex("a29435a4fb1a27a284a60b3409efeebbe6a64db606ff38aeead579ccf2262dc4").expect("private key"))));
+    let _bdo3 = BDO::new(Some("http://localhost:3003/".to_string()), Some(Sessionless::from_private_key(PrivateKey::from_hex("a29435a4fb1a27a284a60b3409efeebbe6a64db606ff38aeead579ccf2262dc4").expect("private key"))));
     let hash = "hereisanexampleofahash";
     let hash2 = "hereisasecondhash";
 
     async fn create_user(bdo: &BDO, hash: &str) -> Option<BDOUser> {
     println!("creating user");
-        let publicBDO = json!({
+        let public_bdo = json!({
             "foo": "foo",
             "pub": bdo.sessionless.public_key().to_hex()
          });
-	let result = bdo.create_user(&hash, &publicBDO).await;
+	let result = bdo.create_user(&hash, &public_bdo).await;
     println!("got to here");
 
 	match result {
@@ -45,10 +44,10 @@ async fn test_bdo() {
 
     async fn create_user2_with_private_bdo(bdo: &BDO, hash: &str) -> Option<BDOUser> {
     println!("creating user2");
-        let privateBDO = json!({
+        let private_bdo = json!({
             "bar": "bar"
          });
-	let result = bdo.create_user(&hash, &privateBDO).await;
+	let result = bdo.create_user(&hash, &private_bdo).await;
     println!("got to here");
 
 	match result {
@@ -68,6 +67,7 @@ async fn test_bdo() {
 	}
     }
 
+    #[allow(unused)]
     async fn update_bdo(bdo: &BDO, saved_user: &BDOUser, hash: &str) -> Option<BDOUser> {
         let update = json!({
             "foo": "bop",
@@ -112,6 +112,7 @@ async fn test_bdo() {
         }
     }
 
+    #[allow(unused)]
     async fn get_bases(bdo: &BDO, saved_user: &BDOUser, hash: &str) -> Option<Value> {
         let result = bdo.get_bases(&saved_user.uuid, &hash).await;
     
@@ -132,6 +133,7 @@ async fn test_bdo() {
         }
     }
 
+    #[allow(unused)]
     async fn put_bases(bdo: &BDO, saved_user: &BDOUser, hash: &str, bases: &Bases) -> Option<Value> {
         let result = bdo.save_bases(&saved_user.uuid, &hash, &bases).await;
 
@@ -157,9 +159,9 @@ async fn test_bdo() {
     
         match result {
             Ok(spellbooks) => {
-                println!("Successfully got spellbook: {}", spellbooks[0].spellbookName);
+                println!("Successfully got spellbook: {}", spellbooks[0].spellbook_name);
                 assert_eq!(
-                    spellbooks[0].spellbookName,
+                    spellbooks[0].spellbook_name,
                     "allyabase"
                 );
                 Some(spellbooks)
@@ -193,6 +195,7 @@ async fn test_bdo() {
     }
 */
 
+    #[allow(unused)]
     async fn delete_user(bdo: &BDO, saved_user: &BDOUser, hash: &str) -> Option<SuccessResult> {
         let result = bdo.delete_user(&saved_user.uuid, &hash).await;
 

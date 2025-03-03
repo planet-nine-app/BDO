@@ -6,18 +6,16 @@ mod tests;
 use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use serde_json::Value;
 use sessionless::hex::IntoHex;
-use sessionless::{Sessionless, Signature};
+use sessionless::{Sessionless};
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::collections::HashMap;
 use std::option::Option;
 use crate::structs::{BDOUser, SuccessResult};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all="camelCase")]
 pub struct Spellbook {
-    pub spellbookName: String,
+    pub spellbook_name: String,
     #[serde(flatten)]
     spells: serde_json::Value
 }
@@ -53,6 +51,7 @@ impl BDO {
         self.client.get(url).send().await
     }
 
+    #[allow(unused)]
     async fn post(&self, url: &str, payload: serde_json::Value) -> Result<Response, reqwest::Error> {
         self.client
             .post(url)
@@ -85,7 +84,7 @@ impl BDO {
             .to_string()
     }
 
-    pub async fn create_user(&self, hash: &str, bdo: &Value) -> Result<BDOUser, Box<dyn std::error::Error>> {
+    pub async fn create_user(&self, hash: &str, bdo: &serde_json::Value) -> Result<BDOUser, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let pub_key = self.sessionless.public_key().to_hex();
         let signature = self.sessionless.sign(&format!("{}{}{}", timestamp, pub_key, hash)).to_hex();
@@ -109,7 +108,7 @@ dbg!("{}", &res);
         Ok(user)
     }
 
-    pub async fn update_bdo(&self, uuid: &str, hash: &str, bdo: &Value, is_public: &bool) -> Result<BDOUser, Box<dyn std::error::Error>> {
+    pub async fn update_bdo(&self, uuid: &str, hash: &str, bdo: &serde_json::Value, is_public: &bool) -> Result<BDOUser, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let message = format!("{}{}{}", timestamp, uuid, hash);
         let signature = self.sessionless.sign(message).to_hex();
@@ -157,7 +156,7 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
         Ok(user)
     }
 
-    pub async fn get_bases(&self, uuid: &str, hash: &str) -> Result<Value, Box<dyn std::error::Error>> {
+    pub async fn get_bases(&self, uuid: &str, hash: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let message = format!("{}{}{}", timestamp, uuid, hash);
         let signature = self.sessionless.sign(message).to_hex();
@@ -169,7 +168,7 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
         Ok(bases.bases)
     }
 
-    pub async fn save_bases(&self, uuid: &str, hash: &str, bases: &Bases) -> Result<Value, Box<dyn std::error::Error>> {
+    pub async fn save_bases(&self, uuid: &str, hash: &str, bases: &Bases) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let message = format!("{}{}{}", timestamp, uuid, hash);
         let signature = self.sessionless.sign(message).to_hex();
