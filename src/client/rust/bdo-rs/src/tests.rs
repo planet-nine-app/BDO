@@ -18,9 +18,21 @@ async fn test_bdo() {
 
     let saved_user: BDOUser;
     let saved_user2: BDOUser;
-    let bdo = BDO::new(Some(url.clone()), None);
-    let bdo2 = BDO::new(Some(url.clone()), None);
-    let _bdo3 = BDO::new(Some(url.clone()), Some(Sessionless::from_private_key(PrivateKey::from_hex("a29435a4fb1a27a284a60b3409efeebbe6a64db606ff38aeead579ccf2262dc4").expect("private key"))));
+
+    let mut bdo = BDO::new(None);
+    bdo.set_url(&url).expect("Invalid URL provided!");
+
+    let mut bdo2 = BDO::new(None);
+    bdo2.set_url(&url).expect("Invalid URL provided!");
+
+    let mut bdo3 = BDO::new(Some(
+        Sessionless::from_private_key(
+            PrivateKey::from_hex("a29435a4fb1a27a284a60b3409efeebbe6a64db606ff38aeead579ccf2262dc4")
+                .expect("private key")
+        )
+    ));
+    bdo3.set_url(&url).expect("Invalid URL provided!");
+
     let hash = "hereisanexampleofahash";
     let hash2 = "hereisasecondhash";
 
@@ -101,7 +113,7 @@ async fn test_bdo() {
     }
 
     async fn get_bdo(bdo: &BDO, bdo2: &BDO, saved_user: &BDOUser, hash: &str) -> Option<BDOUser> {
-        let result = bdo2.get_public_bdo(&saved_user.uuid, &hash, &bdo.sessionless.public_key().to_hex()).await;
+        let result = bdo2.get_bdo(&saved_user.uuid, &hash, Some(&bdo.sessionless.public_key().to_hex())).await;
  
         match result {
             Ok(user) => {

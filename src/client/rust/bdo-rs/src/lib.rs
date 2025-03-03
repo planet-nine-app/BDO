@@ -3,6 +3,7 @@ pub mod structs;
 #[cfg(test)]
 mod tests;
 
+use url::Url;
 use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -33,26 +34,34 @@ pub struct Spellbooks {
 }
 
 pub struct BDO {
-    base_url: String,
+    base_url: Url,
     client: Client,
     pub sessionless: Sessionless,
 }
 
 impl BDO {
-    pub fn new(base_url: Option<String>, sessionless: Option<Sessionless>) -> Self {
+    pub fn new(sessionless: Option<Sessionless>) -> Self {
         BDO {
-            base_url: base_url.unwrap_or("https://dev.bdo.allyabase.com/".to_string()),
+            base_url: Url::parse("https://dev.bdo.allyabase.com/").unwrap(),  // Will never panic
             client: Client::new(),
             sessionless: sessionless.unwrap_or(Sessionless::new()),
         }
     }
 
-    async fn get(&self, url: &str) -> Result<Response, reqwest::Error> {
-        self.client.get(url).send().await
+    pub fn set_url(&mut self, url: impl AsRef<str>) -> Result<(), url::ParseError> {
+        self.base_url = Url::parse(url.as_ref())?;
+        Ok(())
+    }
+
+    async fn get(&self, url: Url) -> Result<Response, reqwest::Error> {
+        self.client
+            .get(url)
+            .send()
+            .await
     }
 
     #[allow(unused)]
-    async fn post(&self, url: &str, payload: serde_json::Value) -> Result<Response, reqwest::Error> {
+    async fn post(&self, url: Url, payload: serde_json::Value) -> Result<Response, reqwest::Error> {
         self.client
             .post(url)
             .json(&payload)
@@ -60,7 +69,7 @@ impl BDO {
             .await
     }
 
-    async fn put(&self, url: &str, payload: serde_json::Value) -> Result<Response, reqwest::Error> {
+    async fn put(&self, url: Url, payload: serde_json::Value) -> Result<Response, reqwest::Error> {
         self.client
             .put(url)
             .json(&payload)
@@ -68,7 +77,7 @@ impl BDO {
             .await
     }
 
-    async fn delete(&self, url: &str, payload: serde_json::Value) -> Result<Response, reqwest::Error> {
+    async fn delete(&self, url: Url, payload: serde_json::Value) -> Result<Response, reqwest::Error> {
         self.client
             .delete(url)
             .json(&payload)
@@ -76,6 +85,8 @@ impl BDO {
             .await
     }
 
+    /// Returns the current timestamp since unix epoch as milliseconds.
+    /// Panics when system time is set before that point. (should never happen)
     fn get_timestamp() -> String {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -87,7 +98,9 @@ impl BDO {
     pub async fn create_user(&self, hash: &str, bdo: &serde_json::Value) -> Result<BDOUser, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let pub_key = self.sessionless.public_key().to_hex();
-        let signature = self.sessionless.sign(&format!("{}{}{}", timestamp, pub_key, hash)).to_hex();
+        let signature = self.sessionless.sign(
+            format!("{}{}{}", timestamp, pub_key, hash)
+        ).to_hex();
         
         let payload = json!({
             "timestamp": timestamp,
@@ -97,14 +110,12 @@ impl BDO {
             "signature": signature
         }).as_object().unwrap().clone();
 
-dbg!("{}", payload.clone());
+        let res = self.put(
+            self.base_url.join("user/create")?,
+            serde_json::Value::Object(payload)
+        ).await?;
 
-        let url = format!("{}user/create", self.base_url);
-dbg!("{}", &url);
-        let res = self.put(&url, serde_json::Value::Object(payload)).await?;
-dbg!("{}", &res);
         let user: BDOUser = res.json().await?;
-
         Ok(user)
     }
 
@@ -123,36 +134,36 @@ dbg!("{}", &res);
             "signature": signature
         }).as_object().unwrap().clone();
 
-        let url = format!("{}user/{}/bdo", self.base_url, uuid);
-        let res = self.put(&url, serde_json::Value::Object(payload)).await?;
-        let user: BDOUser = res.json().await?;
+        let url = self
+            .base_url
+            .join(&*format!("user/{uuid}/bdo"))?;
 
+        let res = self.put(url, serde_json::Value::Object(payload)).await?;
+
+        let user: BDOUser = res.json().await?;
         Ok(user)
     }
 
-    pub async fn get_bdo(&self, uuid: &str, hash: &str) -> Result<BDOUser, Box<dyn std::error::Error>> {
+    pub async fn get_bdo(&self, uuid: &str, hash: &str, pub_key: Option<&str>) -> Result<BDOUser, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let message = format!("{}{}{}", timestamp, uuid, hash);
         let signature = self.sessionless.sign(message).to_hex();
 
-        let url = format!("{}user/{}/bdo?timestamp={}&hash={}&signature={}", self.base_url, uuid, timestamp, hash, signature);
-        let res = self.get(&url).await?;
-        let user: BDOUser = res.json().await?;
- 
-        Ok(user)
-    }
+        let mut url = self
+            .base_url
+            .join(&*format!("user/{uuid}/bdo"))?;
 
-    pub async fn get_public_bdo(&self, uuid: &str, hash: &str, pub_key: &str) -> Result<BDOUser, Box<dyn std::error::Error>> {
-        let timestamp = Self::get_timestamp();
-        let message = format!("{}{}{}", timestamp, uuid, hash);
-        let signature = self.sessionless.sign(message).to_hex();
+        url.set_query(Some(
+            &*if let Some(pub_key) = pub_key {
+                format!("timestamp={timestamp}&hash={hash}&signature={signature}&pubKey={pub_key}")
+            } else {
+                format!("timestamp={timestamp}&hash={hash}&signature={signature}")
+            }
+        ));
 
-        let url = format!("{}user/{}/bdo?timestamp={}&hash={}&signature={}&pubKey={}", self.base_url, uuid, timestamp, hash, signature, pub_key);
-dbg!("{}", &url);
-dbg!("{}", &self.sessionless.public_key().to_hex());
-        let res = self.get(&url).await?;
+        let res = self.get(url).await?;
+
         let user: BDOUser = res.json().await?;
- 
         Ok(user)
     }
 
@@ -161,10 +172,17 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
         let message = format!("{}{}{}", timestamp, uuid, hash);
         let signature = self.sessionless.sign(message).to_hex();
 
-        let url = format!("{}user/{}/bases?timestamp={}&hash={}&signature={}", self.base_url, uuid, timestamp, hash, signature);
-        let res = self.get(&url).await?;
+        let mut url = self
+            .base_url
+            .join(&*format!("user/{uuid}/bases"))?;
+
+        url.set_query(Some(
+            &*format!("timestamp={timestamp}&hash={hash}&signature={signature}")
+        ));
+
+        let res = self.get(url).await?;
+
         let bases: Bases = res.json().await?;
- 
         Ok(bases.bases)
     }
 
@@ -181,10 +199,13 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
             "signature": signature
         }).as_object().unwrap().clone();
 
-        let url = format!("{}user/{}/bases", self.base_url, uuid);
-        let res = self.put(&url, serde_json::Value::Object(payload)).await?;
-        let bases: Bases = res.json().await?;
+        let url = self
+            .base_url
+            .join(&*format!("user/{uuid}/bases"))?;
 
+        let res = self.put(url, serde_json::Value::Object(payload)).await?;
+
+        let bases: Bases = res.json().await?;
         Ok(bases.bases)
     }
 
@@ -195,10 +216,17 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
         let message = format!("{}{}{}", timestamp, uuid, hash);
         let signature = self.sessionless.sign(message).to_hex();
 
-        let url = format!("{}user/{}/spellbooks?timestamp={}&hash={}&signature={}", self.base_url, uuid, timestamp, hash, signature);
-        let res = self.get(&url).await?;
+        let mut url = self
+            .base_url
+            .join(&*format!("user/{uuid}/spellbooks"))?;
+
+        url.set_query(Some(
+            &*format!("timestamp={timestamp}&hash={hash}&signature={signature}")
+        ));
+
+        let res = self.get(url).await?;
+
         let spellbooks: Spellbooks = res.json().await?;
- 
         Ok(spellbooks.spellbooks)
     }
 
@@ -215,10 +243,13 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
             "signature": signature
         }).as_object().unwrap().clone();
 
-        let url = format!("{}user/{}/spellbooks", self.base_url, uuid);
-        let res = self.put(&url, serde_json::Value::Object(payload)).await?;
-        let spellbooks: Vec<Spellbook> = res.json().await?;
+        let url = self
+            .base_url
+            .join(&*format!("user/{uuid}/spellbooks"))?;
 
+        let res = self.put(url, serde_json::Value::Object(payload)).await?;
+
+        let spellbooks: Vec<Spellbook> = res.json().await?;
         Ok(spellbooks)
     }
 
@@ -234,10 +265,13 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
           "signature": signature
         }).as_object().unwrap().clone();
 
-        let url = format!("{}user/{}/delete", self.base_url, uuid);
-        let res = self.delete(&url, serde_json::Value::Object(payload)).await?;
-        let success: SuccessResult = res.json().await?;
+        let url = self
+            .base_url
+            .join(&*format!("user/{uuid}/delete"))?;
 
+        let res = self.delete(url, serde_json::Value::Object(payload)).await?;
+
+        let success: SuccessResult = res.json().await?;
         Ok(success)
     }
 }
