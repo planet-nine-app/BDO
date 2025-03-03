@@ -5,14 +5,22 @@ use sessionless::{Sessionless, PrivateKey};
 use serde_json::json;
 use serde_json::Value;
 
+/// Environment variable name to look for the target URL for running the tests.
+const ENV_KEY_URL: &'static str = "BDO_TEST_URL";
+
+/// Default URL for running the tests.
+const URL_DEFAULT: &'static str = "http://localhost:3003/";
+
 #[actix_rt::test]
 async fn test_bdo() {
+    let url = std::env::var(ENV_KEY_URL)
+        .unwrap_or_else(|_| URL_DEFAULT.to_string());
 
     let saved_user: BDOUser;
     let saved_user2: BDOUser;
-    let bdo = BDO::new(Some("http://localhost:3003/".to_string()), None);
-    let bdo2 = BDO::new(Some("http://localhost:3003/".to_string()), None);
-    let _bdo3 = BDO::new(Some("http://localhost:3003/".to_string()), Some(Sessionless::from_private_key(PrivateKey::from_hex("a29435a4fb1a27a284a60b3409efeebbe6a64db606ff38aeead579ccf2262dc4").expect("private key"))));
+    let bdo = BDO::new(Some(url.clone()), None);
+    let bdo2 = BDO::new(Some(url.clone()), None);
+    let _bdo3 = BDO::new(Some(url.clone()), Some(Sessionless::from_private_key(PrivateKey::from_hex("a29435a4fb1a27a284a60b3409efeebbe6a64db606ff38aeead579ccf2262dc4").expect("private key"))));
     let hash = "hereisanexampleofahash";
     let hash2 = "hereisasecondhash";
 
