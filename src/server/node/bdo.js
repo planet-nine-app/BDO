@@ -27,7 +27,9 @@ const repeat = (func) => {
 
 const bootstrap = async () => {
   try {
-    const fountUser = await fount.createUser(db.saveKeys, db.getKeys);
+    const fountUUID = await fount.createUser(db.saveKeys, db.getKeys);
+    const fountUser = await fount.getUserByUUID(fountUUID);
+console.log('fountUser here looks like: ', fountUser);
     const bdo = {
       uuid: 'bdo',
       fountUUID: fountUser.uuid,
@@ -86,6 +88,7 @@ app.put('/user/create', async (req, res) => {
     });
     
     if(resp.status !== 200) {
+console.log('resp.status is', resp.status);
       res.status = 403;
       return res.send({error: 'Auth error'});
     }
