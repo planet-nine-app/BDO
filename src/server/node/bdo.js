@@ -251,6 +251,7 @@ console.log(resp.status);
 
 console.log('about to get spellbooks');
     const spellbooks = await bdo.getSpellbooks();
+console.log('spellbooks looks like: ', spellbooks);
     return res.send({spellbooks});
   } catch(err) {
 console.warn(err);

@@ -11,6 +11,10 @@
     "type": "git",
     "url": "git+https://github.com/planet-nine-app/bdo.git"
   },
+  "exports": {
+    "import": "./bdo.js",
+    "require": "./bdo.cjs"
+  },
   "type": "module",
   "author": "planetnineisaspaceship",
   "license": "MIT",

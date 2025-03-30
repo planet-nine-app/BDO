@@ -12,8 +12,8 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
-    "fount-js": "^0.0.3",
+    "fount-js": "latest",
     "node-fetch": "^3.3.2",
-    "sessionless-node": "^0.10.1"
+    "sessionless-node": "latest"
   }
 }
