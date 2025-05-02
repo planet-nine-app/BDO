@@ -133,3 +133,4 @@ dist
 config
 data
 target
+Cargo.lock
