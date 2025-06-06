@@ -28,6 +28,7 @@ const repeat = (func) => {
 const bootstrap = async () => {
   try {
     const fountUUID = await fount.createUser(db.saveKeys, db.getKeys);
+console.log('Why is this an object???', fountUUID);
     const fountUser = await fount.getUserByUUID(fountUUID);
 console.log('fountUser here looks like: ', fountUser);
     const bdo = {
