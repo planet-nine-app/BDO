@@ -19,6 +19,8 @@ const gk = () => {
 const SUBDOMAIN = process.env.SUBDOMAIN || 'dev';
 fount.baseURL = process.env.LOCALHOST ? 'http://localhost:3006/' : `https://${SUBDOMAIN}.fount.allyabase.com/`;
 
+console.log('fount\'s baseURL is ', fount.baseURL);
+
 const continuebeeURL = process.env.LOCALHOST ? 'http://localhost:2999/' : `https://${SUBDOMAIN}.continuebee.allyabase.com/`;
 
 const repeat = (func) => {
