@@ -27,7 +27,8 @@ const repeat = (func) => {
 
 const bootstrap = async () => {
   try {
-    const fountUser = await fount.createUser(db.saveKeys, db.getKeys);
+    const fountUUID = await fount.createUser(db.saveKeys, db.getKeys);
+    const fountUser = await fount.getUserByUUID(fountUUID);
 console.log('fountUser here looks like: ', fountUser);
     const bdo = {
       uuid: 'bdo',
@@ -339,5 +340,5 @@ console.warn(err);
   }
 });
 
-app.listen(3003);
+app.listen(3014);
 console.log('give me your bdo');
