@@ -155,6 +155,9 @@ signature message is: timestamp + userUUID + hash</code></summary>
 
 There are two special BDOs that users can add to: [spellbooks][magic], and [bases][allyabase].
 Spellbooks define spells, which users can cast to do interesting things through multiple devices, and bases are a subset of those devices that run some or all of the miniservices of allyabase.
+
+In addition to these datastores, the big dumb object also has a [teleporter][teleportation].
+
 The APIs for these are more or less the same:
 
 <details>
@@ -269,6 +272,39 @@ signature message is:  timestamp + userUUID + hash</code></summary>
 
 </details>
 
+
+##### Teleporter
+
+Here is the endpoint for teleportation:
+
+<details>
+ <summary><code>GET</code> <code><b>/user/:uuid/teleport?timestamp=<timestamp>&hash=<hash>&signature=<signature of (timestamp + uuid + hash)>&url=<url to teleport></b></code> <code>Gets the teleported content from the given url.</code></summary>
+
+##### Parameters
+
+> | name         |  required     | data type               | description                                                           |
+> |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
+> | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
+> | hash         |  true     | string                  | the state hash saved client side
+> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
+> | url          |  true     | string                  | the url to teleport from. Must contain the expected pubKey for the url as a query param  |
+
+##### Responses
+
+> | http code     | content-type                      | response                                                            |
+> |---------------|-----------------------------------|---------------------------------------------------------------------|
+> | `200`         | `application/json`                | `{"valid": bool, ...teleportTag }`   |
+> | `406`         | `application/json`                | `{"code":"406","message":"Not acceptable"}`                            |
+
+##### Example cURL
+
+> ```javascript
+>  curl -X GET -H "Content-Type: application/json" https://bdo.planetnine.app/user/<uuid>?timestamp=123&hash=hash&pubKey=pubKey&signature=signature&url=https%3A%2F%2Fpeaceloveandredistribution.com%2Fa-brief-history-of-teleportation%3FpubKey%3D023031231f669c6504ef5939b6b5e22d2d8be76cf46e98297b810138933de2494f 
+> ```
+
+</details>
+
+
 ## Databases
 
 One of the biggest benefits of Sessionless is that it doesn't need to store any sensitive data.
@@ -331,6 +367,7 @@ To add to this repo, feel free to make a [pull request][pr].
 [sessionless]: https://www.github.com/planet-nine-app/sessionless
 [bdo]: https://www.github.com/planet-nine-app/BDO
 [magic]: https://www.github.com/planet-nine-app/MAGIC
+[teleportation]: https://www.github.com/planet-nine-app/teleportation
 [allyabase]: https://www.github.com/planet-nine-app/allyabase
 
 [^1]: The kind of standard use case for this is config for a client application, and that's a fine use case.

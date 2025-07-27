@@ -319,6 +319,38 @@ console.warn(err);
   }
 });
 
+import safeTeleportationParser from 'teleportation-js';
+
+app.get('/user/:uuid/teleport', async (req, res) => {
+  try {
+    const uuid = req.params.uuid;
+    const timestamp = req.query.timestamp;
+    const hash = req.query.hash;
+    const signature = req.query.signature;
+    const url = req.query.url;
+ 
+    const resp = await fetch(`${continuebeeURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
+console.log(resp.status);
+    if(resp.status !== 200) {
+      res.status = 403;
+      return res.send({error: 'Auth error'});
+    }
+
+    const teleportTag = await safeTeleportationParser.getTeleportTag(req.params.url);
+    const isValid = await safeTeleportationParser.isValidTag(teleportTag);
+
+    if(isValid) {
+      return res.send({valid: true, ...teleportTag});
+    }
+
+    res.send({valid: false});
+  } catch(err) {
+console.warn(err);
+    res.status(404);
+    res.send({error: 'not found'});
+  }
+});
+
 app.delete('/user/delete', async (req, res) => {
   try {
     const body = req.body;
