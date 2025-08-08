@@ -14,6 +14,7 @@
     "express": "^4.19.2",
     "fount-js": "latest",
     "node-fetch": "^3.3.2",
-    "sessionless-node": "latest"
+    "sessionless-node": "latest",
+    "teleportation-js": "latest"
   }
 }
