@@ -322,35 +322,51 @@ console.warn(err);
 import safeTeleportationParser from 'teleportation-js';
 import fs from 'fs';
 
-// Helper function to translate URLs for Docker container networking
-function translateUrlForContainer(url) {
-  // Check if we're running inside a Docker container
-  const isInContainer = fs.existsSync('/.dockerenv') || 
-                        process.env.HOSTNAME?.startsWith('allyabase') ||
-                        (process.env.HOSTNAME?.length === 12);
-  
-  if (!isInContainer) {
+// Helper function to translate allyabase:// protocol to container networking
+function translateAllyabaseProtocol(url) {
+  // Check if URL uses allyabase:// protocol
+  if (!url.startsWith('allyabase://')) {
     return url;
   }
 
-  // Translate localhost URLs to container names for Docker networking
-  const translated = url
-    // Base 1 translations (5121 -> allyabase-base1:7243, 5114 -> allyabase-base1:3003)
-    .replace(/http:\/\/(127\.0\.0\.1|localhost):5121\//g, "http://allyabase-base1:7243/")
-    .replace(/http:\/\/(127\.0\.0\.1|localhost):5114\//g, "http://allyabase-base1:3003/")
-    // Base 2 translations (5221 -> allyabase-base2:7243, 5214 -> allyabase-base2:3003)  
-    .replace(/http:\/\/(127\.0\.0\.1|localhost):5221\//g, "http://allyabase-base2:7243/")
-    .replace(/http:\/\/(127\.0\.0\.1|localhost):5214\//g, "http://allyabase-base2:3003/")
-    // Base 3 translations (5321 -> allyabase-base3:7243, 5314 -> allyabase-base3:3003)
-    .replace(/http:\/\/(127\.0\.0\.1|localhost):5321\//g, "http://allyabase-base3:7243/")
-    .replace(/http:\/\/(127\.0\.0\.1|localhost):5314\//g, "http://allyabase-base3:3003/");
+  // Map service names to their internal container ports
+  const servicePortMap = {
+    'sanora': '7243',
+    'julia': '3000',
+    'continuebee': '2999', 
+    'pref': '3002',
+    'bdo': '3003',
+    'joan': '3004',
+    'addie': '3005',
+    'fount': '3006',
+    'dolores': '3007',
+    'minnie': '2525',
+    'aretha': '7277',
+    'covenant': '3011'
+  };
 
-  if (translated !== url) {
-    console.log('🐳 Docker container detected - translating URL:');
-    console.log('   From:', url);
-    console.log('   To:  ', translated);
+  // Extract service name from URL (e.g., allyabase://sanora/path -> sanora)
+  const serviceMatch = url.match(/^allyabase:\/\/([^\/]+)/);
+  if (!serviceMatch) {
+    console.warn('⚠️ Invalid allyabase:// URL format:', url);
+    return url;
   }
 
+  const serviceName = serviceMatch[1];
+  const servicePort = servicePortMap[serviceName];
+  
+  if (!servicePort) {
+    console.warn('⚠️ Unknown service name:', serviceName);
+    return url;
+  }
+
+  // Replace allyabase://service with http://127.0.0.1:port
+  const translated = url.replace(/^allyabase:\/\/[^\/]+/, `http://127.0.0.1:${servicePort}`);
+  
+  console.log('🔗 Translating allyabase:// protocol for container networking:');
+  console.log('   From:', url);
+  console.log('   To:  ', translated);
+  
   return translated;
 }
 
@@ -369,8 +385,8 @@ console.log(resp.status);
       return res.send({error: 'Auth error'});
     }
 
-    // Translate URL for container networking if needed
-    const containerUrl = translateUrlForContainer(url);
+    // Translate allyabase:// protocol for container networking if needed
+    const containerUrl = translateAllyabaseProtocol(url);
     const teleportTag = await safeTeleportationParser.getTeleportTag(containerUrl);
     const isValid = await safeTeleportationParser.isValidTag(teleportTag);
 
