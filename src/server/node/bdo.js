@@ -336,7 +336,7 @@ console.log(resp.status);
       return res.send({error: 'Auth error'});
     }
 
-    const teleportTag = await safeTeleportationParser.getTeleportTag(req.params.url);
+    const teleportTag = await safeTeleportationParser.getTeleportTag(url);
     const isValid = await safeTeleportationParser.isValidTag(teleportTag);
 
     if(isValid) {
