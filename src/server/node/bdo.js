@@ -320,6 +320,39 @@ console.warn(err);
 });
 
 import safeTeleportationParser from 'teleportation-js';
+import fs from 'fs';
+
+// Helper function to translate URLs for Docker container networking
+function translateUrlForContainer(url) {
+  // Check if we're running inside a Docker container
+  const isInContainer = fs.existsSync('/.dockerenv') || 
+                        process.env.HOSTNAME?.startsWith('allyabase') ||
+                        (process.env.HOSTNAME?.length === 12);
+  
+  if (!isInContainer) {
+    return url;
+  }
+
+  // Translate localhost URLs to container names for Docker networking
+  const translated = url
+    // Base 1 translations (5121 -> allyabase-base1:7243, 5114 -> allyabase-base1:3003)
+    .replace(/http:\/\/(127\.0\.0\.1|localhost):5121\//g, "http://allyabase-base1:7243/")
+    .replace(/http:\/\/(127\.0\.0\.1|localhost):5114\//g, "http://allyabase-base1:3003/")
+    // Base 2 translations (5221 -> allyabase-base2:7243, 5214 -> allyabase-base2:3003)  
+    .replace(/http:\/\/(127\.0\.0\.1|localhost):5221\//g, "http://allyabase-base2:7243/")
+    .replace(/http:\/\/(127\.0\.0\.1|localhost):5214\//g, "http://allyabase-base2:3003/")
+    // Base 3 translations (5321 -> allyabase-base3:7243, 5314 -> allyabase-base3:3003)
+    .replace(/http:\/\/(127\.0\.0\.1|localhost):5321\//g, "http://allyabase-base3:7243/")
+    .replace(/http:\/\/(127\.0\.0\.1|localhost):5314\//g, "http://allyabase-base3:3003/");
+
+  if (translated !== url) {
+    console.log('🐳 Docker container detected - translating URL:');
+    console.log('   From:', url);
+    console.log('   To:  ', translated);
+  }
+
+  return translated;
+}
 
 app.get('/user/:uuid/teleport', async (req, res) => {
   try {
@@ -336,7 +369,9 @@ console.log(resp.status);
       return res.send({error: 'Auth error'});
     }
 
-    const teleportTag = await safeTeleportationParser.getTeleportTag(url);
+    // Translate URL for container networking if needed
+    const containerUrl = translateUrlForContainer(url);
+    const teleportTag = await safeTeleportationParser.getTeleportTag(containerUrl);
     const isValid = await safeTeleportationParser.isValidTag(teleportTag);
 
     if(isValid) {

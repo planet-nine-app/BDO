@@ -242,10 +242,50 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
         Ok(success)
     }
 
+    // Helper function to translate URLs for Docker container networking
+    fn translate_url_for_container(&self, url: &str) -> String {
+        // Check if we're running inside a Docker container by looking for typical container indicators
+        let is_in_container = std::path::Path::exists(std::path::Path::new("/.dockerenv")) ||
+                              std::env::var("HOSTNAME").map_or(false, |h| h.starts_with("allyabase") || h.len() == 12);
+        
+        if !is_in_container {
+            return url.to_string();
+        }
+
+        // Translate localhost URLs to container names for Docker networking
+        let translated = url
+            // Base 1 translations (5121 -> allyabase-base1:7243, 5114 -> allyabase-base1:3003)
+            .replace("http://127.0.0.1:5121/", "http://allyabase-base1:7243/")
+            .replace("http://localhost:5121/", "http://allyabase-base1:7243/")
+            .replace("http://127.0.0.1:5114/", "http://allyabase-base1:3003/")
+            .replace("http://localhost:5114/", "http://allyabase-base1:3003/")
+            // Base 2 translations (5221 -> allyabase-base2:7243, 5214 -> allyabase-base2:3003)  
+            .replace("http://127.0.0.1:5221/", "http://allyabase-base2:7243/")
+            .replace("http://localhost:5221/", "http://allyabase-base2:7243/")
+            .replace("http://127.0.0.1:5214/", "http://allyabase-base2:3003/")
+            .replace("http://localhost:5214/", "http://allyabase-base2:3003/")
+            // Base 3 translations (5321 -> allyabase-base3:7243, 5314 -> allyabase-base3:3003)
+            .replace("http://127.0.0.1:5321/", "http://allyabase-base3:7243/")
+            .replace("http://localhost:5321/", "http://allyabase-base3:7243/")
+            .replace("http://127.0.0.1:5314/", "http://allyabase-base3:3003/")
+            .replace("http://localhost:5314/", "http://allyabase-base3:3003/");
+
+        if translated != url {
+            println!("🐳 Docker container detected - translating URL:");
+            println!("   From: {}", url);
+            println!("   To:   {}", translated);
+        }
+
+        translated
+    }
+
     pub async fn teleport(&self, uuid: &str, hash: &str, url: &str) -> Result<Value, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let message = format!("{}{}{}", timestamp, uuid, hash);
         let signature = self.sessionless.sign(&message).to_hex();
+
+        // Translate URL for container networking if needed
+        let container_url = self.translate_url_for_container(url);
 
         let teleport_url = format!(
             "{}user/{}/teleport?timestamp={}&hash={}&signature={}&url={}", 
@@ -254,7 +294,7 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
             timestamp, 
             hash, 
             signature, 
-            urlencoding::encode(url)
+            urlencoding::encode(&container_url)
         );
 
         dbg!(&teleport_url);
