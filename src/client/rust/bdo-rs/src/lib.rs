@@ -241,4 +241,26 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
 
         Ok(success)
     }
+
+    pub async fn teleport(&self, uuid: &str, hash: &str, url: &str) -> Result<Value, Box<dyn std::error::Error>> {
+        let timestamp = Self::get_timestamp();
+        let message = format!("{}{}{}", timestamp, uuid, hash);
+        let signature = self.sessionless.sign(&message).to_hex();
+
+        let teleport_url = format!(
+            "{}user/{}/teleport?timestamp={}&hash={}&signature={}&url={}", 
+            self.base_url, 
+            uuid, 
+            timestamp, 
+            hash, 
+            signature, 
+            urlencoding::encode(url)
+        );
+
+        dbg!(&teleport_url);
+        let res = self.get(&teleport_url).await?;
+        let teleported_content: Value = res.json().await?;
+
+        Ok(teleported_content)
+    }
 }
