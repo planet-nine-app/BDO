@@ -42,8 +42,11 @@ pub struct BDO {
 
 impl BDO {
     pub fn new(base_url: Option<String>, sessionless: Option<Sessionless>) -> Self {
+        println!("🏗️ BDO::new() called with base_url: {:?}", base_url);
+        let final_base_url = base_url.unwrap_or("https://dev.bdo.allyabase.com/".to_string());
+        println!("🏗️ BDO using final base_url: {}", final_base_url);
         BDO {
-            base_url: base_url.unwrap_or("https://dev.bdo.allyabase.com/".to_string()),
+            base_url: final_base_url,
             client: Client::new(),
             sessionless: sessionless.unwrap_or(Sessionless::new()),
         }
@@ -100,7 +103,9 @@ impl BDO {
 
 dbg!("{}", payload.clone());
 
+        println!("🔧 BDO client base_url: {}", self.base_url);
         let url = format!("{}user/create", self.base_url);
+        println!("🔗 BDO final URL: {}", &url);
 dbg!("{}", &url);
         let res = self.put(&url, serde_json::Value::Object(payload)).await?;
 dbg!("{}", &res);

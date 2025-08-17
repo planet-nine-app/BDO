@@ -275,31 +275,102 @@ signature message is:  timestamp + userUUID + hash</code></summary>
 
 ##### Teleporter
 
-Here is the endpoint for teleportation:
+BDO implements the Planet Nine teleportation protocol for secure cross-service content discovery. The teleportation system validates cryptographic signatures to ensure content authenticity before returning teleported data.
 
 <details>
- <summary><code>GET</code> <code><b>/user/:uuid/teleport?timestamp=<timestamp>&hash=<hash>&signature=<signature of (timestamp + uuid + hash)>&url=<url to teleport></b></code> <code>Gets the teleported content from the given url.</code></summary>
+ <summary><code>GET</code> <code><b>/user/:uuid/teleport</b></code> <code>Teleports content from a remote URL with signature verification</code></summary>
 
 ##### Parameters
 
 > | name         |  required     | data type               | description                                                           |
 > |--------------|-----------|-------------------------|-----------------------------------------------------------------------|
-> | timestamp    |  true     | string                  | in a production system timestamps prevent replay attacks  |
-> | hash         |  true     | string                  | the state hash saved client side
-> | signature    |  true     | string (signature)      | the signature from sessionless for the message  |
-> | url          |  true     | string                  | the url to teleport from. Must contain the expected pubKey for the url as a query param  |
+> | timestamp    |  true     | string                  | Current timestamp to prevent replay attacks  |
+> | hash         |  true     | string                  | The client's state hash (e.g., "ninefy", "blogary", etc.)
+> | signature    |  true     | string (hex)            | Sessionless signature of `timestamp + uuid + hash`  |
+> | url          |  true     | string (URL encoded)    | The URL to teleport from, must include `pubKey` query parameter  |
+
+##### URL Parameter Details
+
+The `url` parameter supports two protocols:
+
+1. **Standard HTTP/HTTPS**: `https://dev.sanora.allyabase.com/teleportable-products?pubKey=[key]`
+2. **Container Networking**: `allyabase://sanora/teleportable-products?pubKey=[key]`
+
+The `allyabase://` protocol enables container-to-container communication in Docker environments:
+- Format: `allyabase://[service]/[path]`
+- BDO translates to internal container ports (e.g., `allyabase://sanora` → `http://127.0.0.1:7243`)
 
 ##### Responses
 
 > | http code     | content-type                      | response                                                            |
 > |---------------|-----------------------------------|---------------------------------------------------------------------|
-> | `200`         | `application/json`                | `{"valid": bool, ...teleportTag }`   |
-> | `406`         | `application/json`                | `{"code":"406","message":"Not acceptable"}`                            |
+> | `200`         | `application/json`                | Success response with teleported content (see below)   |
+> | `403`         | `application/json`                | `{"error": "Auth error"}` - Invalid signature                            |
+> | `404`         | `application/json`                | `{"error": "not found"}` - Invalid UUID or request failed                            |
+
+##### Success Response Format
+
+```json
+{
+  "valid": true,                    // Signature verification result
+  "html": "<teleport>...</teleport>", // The teleported HTML content
+  "message": "timestamp:content:teleport", // The signed message
+  "signature": "hex_signature",     // The content provider's signature
+  "teleporterPubKey": "hex_pubkey", // The public key that signed the content
+  "amount": null,                   // Optional: payment amount if applicable
+  "spell": null                     // Optional: MAGIC spell data if applicable
+}
+```
+
+##### How Teleportation Works
+
+1. **Client Request**: Application requests teleportation with their UUID and the target URL
+2. **Authentication**: BDO verifies the client's signature for the request
+3. **Content Fetch**: BDO fetches the content from the target URL
+4. **Signature Validation**: BDO verifies the teleport tag's signature matches the provided pubKey
+5. **Response**: Returns validated content with `valid: true` or `valid: false`
+
+##### Integration Example
+
+```javascript
+// Client-side (e.g., Ninefy)
+const teleportUrl = `allyabase://sanora/teleportable-products?pubKey=${basePubKey}`;
+const encodedUrl = encodeURIComponent(teleportUrl);
+const timestamp = Date.now().toString();
+const message = `${timestamp}${uuid}${hash}`;
+const signature = await sessionless.sign(message);
+
+const response = await fetch(
+  `${bdoUrl}/user/${uuid}/teleport?` +
+  `timestamp=${timestamp}&hash=${hash}&signature=${signature}&url=${encodedUrl}`
+);
+
+const teleportedData = await response.json();
+if (teleportedData.valid) {
+  // Parse and use the teleported content
+  const products = parseTelepotalElements(teleportedData.html);
+}
+```
+
+##### Container Networking Translation
+
+When BDO receives an `allyabase://` URL, it translates to container-internal addresses:
+
+| Service | allyabase:// URL | Translated URL |
+|---------|-----------------|----------------|
+| sanora | `allyabase://sanora/path` | `http://127.0.0.1:7243/path` |
+| julia | `allyabase://julia/path` | `http://127.0.0.1:3000/path` |
+| bdo | `allyabase://bdo/path` | `http://127.0.0.1:3003/path` |
+| addie | `allyabase://addie/path` | `http://127.0.0.1:3005/path` |
 
 ##### Example cURL
 
-> ```javascript
->  curl -X GET -H "Content-Type: application/json" https://bdo.planetnine.app/user/<uuid>?timestamp=123&hash=hash&pubKey=pubKey&signature=signature&url=https%3A%2F%2Fpeaceloveandredistribution.com%2Fa-brief-history-of-teleportation%3FpubKey%3D023031231f669c6504ef5939b6b5e22d2d8be76cf46e98297b810138933de2494f 
+> ```bash
+> # Standard HTTP teleportation
+> curl -X GET "https://dev.bdo.allyabase.com/user/[uuid]/teleport?timestamp=1234567890&hash=ninefy&signature=[hex_signature]&url=https%3A%2F%2Fdev.sanora.allyabase.com%2Fteleportable-products%3FpubKey%3D[hex_pubkey]"
+> 
+> # Container networking (allyabase://)
+> curl -X GET "http://localhost:5114/user/[uuid]/teleport?timestamp=1234567890&hash=ninefy&signature=[hex_signature]&url=allyabase%3A%2F%2Fsanora%2Fteleportable-products%3FpubKey%3D[hex_pubkey]"
 > ```
 
 </details>
