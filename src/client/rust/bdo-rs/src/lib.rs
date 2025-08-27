@@ -88,7 +88,7 @@ impl BDO {
             .to_string()
     }
 
-    pub async fn create_user(&self, hash: &str, bdo: &Value) -> Result<BDOUser, Box<dyn std::error::Error>> {
+    pub async fn create_user(&self, hash: &str, bdo: &Value, is_public: &bool) -> Result<BDOUser, Box<dyn std::error::Error>> {
         let timestamp = Self::get_timestamp();
         let pub_key = self.sessionless.public_key().to_hex();
         let signature = self.sessionless.sign(&format!("{}{}{}", timestamp, pub_key, hash)).to_hex();
@@ -98,6 +98,7 @@ impl BDO {
             "pubKey": pub_key,
             "hash": hash,
             "bdo": bdo,
+            "public": is_public,
             "signature": signature
         }).as_object().unwrap().clone();
 

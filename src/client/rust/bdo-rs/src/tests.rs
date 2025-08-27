@@ -23,7 +23,7 @@ async fn test_bdo() {
             "foo": "foo",
             "pub": bdo.sessionless.public_key().to_hex()
          });
-	let result = bdo.create_user(&hash, &publicBDO).await;
+	let result = bdo.create_user(&hash, &publicBDO, false).await;
     println!("got to here");
 
 	match result {
@@ -48,7 +48,7 @@ async fn test_bdo() {
         let privateBDO = json!({
             "bar": "bar"
          });
-	let result = bdo.create_user(&hash, &privateBDO).await;
+	let result = bdo.create_user(&hash, &privateBDO, false).await;
     println!("got to here");
 
 	match result {
