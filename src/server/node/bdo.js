@@ -7,6 +7,7 @@ import fount from 'fount-js';
 import sessionless from 'sessionless-node';
 import MAGIC from './src/magic/magic.js';
 import db from './src/persistence/db.js';
+import gateway from 'magic-gateway-js';
 
 const sk = (keys) => {
   global.keys = keys;
@@ -137,7 +138,7 @@ console.log(resp.status);
   
     if(pub) {
       const existingBDO = await bdo.getBDO(uuid, hash);
-      if(existingBDO && existingBDO.pubKey !== pubKey) {
+      if(existingBDO && existingBDO.pub && existingBDO.pubKey !== pubKey) {
 console.log('this is failing');
 console.log(existingBDO.pubKey);
 console.log(pubKey);
@@ -425,6 +426,101 @@ console.warn(err);
     return res.send({error: 'not found'});
   }
 });
+
+// Set up magic gateway for creation spells
+const setupMagicGateway = async () => {
+  try {
+    console.log('🪄 Setting up BDO magic gateway...');
+
+    // Get BDO user for gateway setup
+    const bdoUser = await db.getBDO('bdo');
+    const fountUser = { uuid: bdoUser.fountUUID, pubKey: bdoUser.fountPubKey };
+
+    // Simple spellbook for BDO - just needs to handle createBDO
+    const spellbook = {
+      createBDO: {
+        destinations: [
+          { stopName: 'julia', stopURL: 'http://localhost:3007/magic/spell/' },
+          { stopName: 'fount', stopURL: 'http://localhost:3006/resolve/' },
+          { stopName: 'bdo', stopURL: 'http://localhost:3003/magic/spell/' }
+        ]
+      }
+    };
+
+    // Handle successful spell - this is where we actually create the BDO
+    const onSuccess = async (req, res, result) => {
+      try {
+        console.log('✅ BDO createBDO spell succeeded, creating BDO...');
+
+        const spell = req.body;
+        const bdoData = spell.bdoData; // BDO data should be in spell payload
+
+        if (!bdoData) {
+          return res.status(400).send({ success: false, error: 'No BDO data in spell' });
+        }
+
+        // Create the BDO using existing logic
+        const hash = spell.hash || 'default-hash';
+        const pubKey = spell.pubKey;
+
+        const newBDO = await bdo.putBDO(spell.casterUUID, bdoData, hash, pubKey);
+
+        result.bdo = {
+          success: true,
+          uuid: spell.casterUUID,
+          bdo: newBDO,
+          message: 'BDO created via spell'
+        };
+
+        res.send(result);
+      } catch(err) {
+        console.error('❌ Error creating BDO via spell:', err);
+        res.status(500).send({ success: false, error: err.message });
+      }
+    };
+
+    // Set up the magic gateway
+    gateway.expressApp(app, fountUser, spellbook, 'bdo', sessionless, null, onSuccess);
+
+    console.log('✅ BDO magic gateway ready');
+  } catch(err) {
+    console.error('❌ Failed to setup BDO magic gateway:', err);
+  }
+};
+
+// Short code endpoint - get BDO by short code
+app.get('/short/:shortCode', async (req, res) => {
+console.log('getting bdo by short code');
+  try {
+    const shortCode = req.params.shortCode;
+    const pubKey = await db.getPubKeyForShortCode(shortCode);
+
+    if (!pubKey) {
+      res.status(404);
+      return res.send({error: 'Short code not found'});
+    }
+
+    const bdoData = await bdo.getBDO(null, null, pubKey);
+
+    if (!bdoData) {
+      res.status(404);
+      return res.send({error: 'BDO not found'});
+    }
+
+    return res.send({
+      shortCode,
+      pubKey,
+      bdo: bdoData
+    });
+  } catch(err) {
+console.warn(err);
+    res.status(404);
+    return res.send({error: 'not found'});
+  }
+});
+
+// Initialize magic gateway
+setupMagicGateway();
 
 app.listen(3003);
 console.log('give me your bdo');

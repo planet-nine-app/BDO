@@ -24,6 +24,20 @@ console.log('putting', bdo, 'for', hash);
     if(pubKey) {
 console.log('saving pubKey bdo for: ', `bdo:${pubKey}`);
       await client.set(`bdo:${pubKey}`, JSON.stringify(bdo));
+
+      // Generate and save short code for public BDOs
+      let shortCode = await client.get(`shortcode:code:${pubKey}`);
+      if (!shortCode) {
+        const currentCounter = await client.get('shortcode:counter') || '0';
+        const nextCounter = parseInt(currentCounter) + 1;
+        await client.set('shortcode:counter', nextCounter.toString());
+        shortCode = nextCounter.toString(16).padStart(9, '0');
+
+        // Save bidirectional mapping
+        await client.set(`shortcode:pubkey:${shortCode}`, pubKey);
+        await client.set(`shortcode:code:${pubKey}`, shortCode);
+console.log(`assigned short code ${shortCode} to pubKey ${pubKey}`);
+      }
     }
     return bdo;
   },
@@ -79,6 +93,31 @@ console.log('saving pubKey bdo for: ', `bdo:${pubKey}`);
   getKeys: async () => {
     const keyString = await client.get('keys');
     return JSON.parse(keyString);
+  },
+
+  // Short code functionality for public BDOs
+  getNextShortCode: async () => {
+    const currentCounter = await client.get('shortcode:counter') || '0';
+    const nextCounter = parseInt(currentCounter) + 1;
+    await client.set('shortcode:counter', nextCounter.toString());
+
+    // Convert to 36-bit hex (9 hex characters max for 36 bits)
+    const shortCode = nextCounter.toString(16).padStart(9, '0');
+    return shortCode;
+  },
+
+  saveShortCodeMapping: async (pubKey, shortCode) => {
+    // Save bidirectional mapping
+    await client.set(`shortcode:pubkey:${shortCode}`, pubKey);
+    await client.set(`shortcode:code:${pubKey}`, shortCode);
+  },
+
+  getShortCodeForPubKey: async (pubKey) => {
+    return await client.get(`shortcode:code:${pubKey}`);
+  },
+
+  getPubKeyForShortCode: async (shortCode) => {
+    return await client.get(`shortcode:pubkey:${shortCode}`);
   }
 
 };
