@@ -166,7 +166,8 @@ console.log('get bdo');
     const timestamp = req.query.timestamp;
     const signature = req.query.signature;
     const hash = req.query.hash;
-    const pubKey = req.query.pubKey;
+    let pubKey = req.query.pubKey;
+    const emojicode = req.query.emojicode;
 
     const resp = await fetch(`${continuebeeURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
 console.log(resp.status);
@@ -175,9 +176,21 @@ console.log(resp.status);
       return res.send({error: 'Auth error'});
     }
 
+    // If emojicode provided, look up the pubKey
+    if(emojicode) {
+console.log('looking up pubKey for emojicode:', emojicode);
+      const emojipubKey = await db.getPubKeyForEmojicode(emojicode);
+      if(!emojipubKey) {
+        res.status = 404;
+        return res.send({error: 'Emojicode not found'});
+      }
+console.log('found pubKey for emojicode:', emojipubKey);
+      pubKey = emojipubKey;
+    }
+
     const newBDO = await bdo.getBDO(uuid, hash, pubKey);
     return res.send({
-      uuid, 
+      uuid,
       bdo: newBDO
     });
   } catch(err) {
@@ -511,6 +524,67 @@ console.log('getting bdo by short code');
       shortCode,
       pubKey,
       bdo: bdoData
+    });
+  } catch(err) {
+console.warn(err);
+    res.status(404);
+    return res.send({error: 'not found'});
+  }
+});
+
+// Emojicode endpoint - get BDO by emojicode
+app.get('/emoji/:emojicode', async (req, res) => {
+console.log('getting bdo by emojicode');
+  try {
+    const emojicode = req.params.emojicode;
+    const pubKey = await db.getPubKeyForEmojicode(emojicode);
+
+    if (!pubKey) {
+      res.status(404);
+      return res.send({error: 'Emojicode not found'});
+    }
+
+    const bdoData = await bdo.getBDO(null, null, pubKey);
+
+    if (!bdoData) {
+      res.status(404);
+      return res.send({error: 'BDO not found'});
+    }
+
+    // Get creation timestamp
+    const createdAt = await db.getEmojicodeCreationTime(emojicode);
+
+    return res.send({
+      emojicode,
+      pubKey,
+      bdo: bdoData,
+      createdAt
+    });
+  } catch(err) {
+console.warn(err);
+    res.status(404);
+    return res.send({error: 'not found'});
+  }
+});
+
+// Reverse lookup - get emojicode for a pubKey
+app.get('/pubkey/:pubKey/emojicode', async (req, res) => {
+console.log('getting emojicode for pubKey');
+  try {
+    const pubKey = req.params.pubKey;
+    const emojicode = await db.getEmojicodeForPubKey(pubKey);
+
+    if (!emojicode) {
+      res.status(404);
+      return res.send({error: 'Emojicode not found for this pubKey'});
+    }
+
+    const createdAt = await db.getEmojicodeCreationTime(emojicode);
+
+    return res.send({
+      pubKey,
+      emojicode,
+      createdAt
     });
   } catch(err) {
 console.warn(err);
