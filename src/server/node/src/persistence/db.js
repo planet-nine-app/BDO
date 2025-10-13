@@ -24,47 +24,32 @@ console.log('putting', bdo, 'for', hash);
     const hashQueryString = `bdo:${uuid}_${hash}`;
     await client.set(hashQueryString, JSON.stringify(bdo));
 
-    let shortCode = null;
-    let emojicode = null;
+    let emojiShortcode = null;
 
     if(pubKey) {
 console.log('saving pubKey bdo for: ', `bdo:${pubKey}`);
       await client.set(`bdo:${pubKey}`, JSON.stringify(bdo));
 
-      // Generate and save short code for public BDOs
-      shortCode = await client.get(`shortcode:code:${pubKey}`);
-      if (!shortCode) {
-        const currentCounter = await client.get('shortcode:counter') || '0';
-        const nextCounter = parseInt(currentCounter) + 1;
-        await client.set('shortcode:counter', nextCounter.toString());
-        shortCode = nextCounter.toString(16).padStart(9, '0');
-
-        // Save bidirectional mapping
-        await client.set(`shortcode:pubkey:${shortCode}`, pubKey);
-        await client.set(`shortcode:code:${pubKey}`, shortCode);
-console.log(`assigned short code ${shortCode} to pubKey ${pubKey}`);
-      }
-
-      // Generate and save emojicode for public BDOs
-      emojicode = await client.get(`emojicode:code:${pubKey}`);
-      if (!emojicode) {
+      // Generate and save emoji shortcode for public BDOs (8-emoji code)
+      emojiShortcode = await client.get(`emojicode:code:${pubKey}`);
+      if (!emojiShortcode) {
         try {
-          // Generate emojicode with collision checking
-          emojicode = await generateEmojicode(
+          // Generate emoji shortcode with collision checking
+          emojiShortcode = await generateEmojicode(
             config.baseEmoji,
             async (code) => await db.checkEmojicodeExists(code)
           );
 
           // Save the mapping with timestamp
-          await db.saveEmojicodeMapping(pubKey, emojicode);
-console.log(`assigned emojicode ${emojicode} to pubKey ${pubKey}`);
+          await db.saveEmojicodeMapping(pubKey, emojiShortcode);
+console.log(`assigned emoji shortcode ${emojiShortcode} to pubKey ${pubKey}`);
         } catch (error) {
-console.error(`Failed to generate emojicode for pubKey ${pubKey}:`, error);
+console.error(`Failed to generate emoji shortcode for pubKey ${pubKey}:`, error);
         }
       }
     }
 
-    return { bdo, shortCode, emojicode };
+    return { bdo, emojiShortcode };
   },
 
   getBases: async () => {

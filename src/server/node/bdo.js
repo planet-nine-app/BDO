@@ -99,8 +99,7 @@ console.log('resp.status is', resp.status);
     const user = await resp.json();
     const uuid = user.userUUID;
 
-    let shortCode = null;
-    let emojicode = null;
+    let emojiShortcode = null;
 
     if(newBDO) {
       const response = await bdo.putBDO(uuid, newBDO, hash, pub ? pubKey : null);
@@ -108,15 +107,13 @@ console.log('resp.status is', resp.status);
         res.status = 404;
         return res.send({error: 'not found'});
       }
-      shortCode = response.shortCode;
-      emojicode = response.emojicode;
+      emojiShortcode = response.emojiShortcode;
     }
 
     return res.send({
       uuid,
       bdo: newBDO,
-      shortCode,
-      emojicode
+      emojiShortcode
     });
   } catch(err) {
 console.warn(err);
@@ -158,8 +155,7 @@ console.log(pubKey);
     return res.send({
       uuid,
       bdo: response.bdo,
-      shortCode: response.shortCode,
-      emojicode: response.emojicode
+      emojiShortcode: response.emojiShortcode
     });
   } catch(err) {
 console.warn(err);
