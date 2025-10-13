@@ -1,5 +1,7 @@
 import { createClient } from './client.js';
 import sessionless from 'sessionless-node';
+import { generateEmojicode } from '../utils/emojicoding.js';
+import config from '../../config/local.js';
 
 const client = await createClient()
   .on('error', err => console.log('Redis Client Error', err))
@@ -21,11 +23,33 @@ console.log(bdo);
 console.log('putting', bdo, 'for', hash);
     const hashQueryString = `bdo:${uuid}_${hash}`;
     await client.set(hashQueryString, JSON.stringify(bdo));
+
+    let emojiShortcode = null;
+
     if(pubKey) {
 console.log('saving pubKey bdo for: ', `bdo:${pubKey}`);
       await client.set(`bdo:${pubKey}`, JSON.stringify(bdo));
+
+      // Generate and save emoji shortcode for public BDOs (8-emoji code)
+      emojiShortcode = await client.get(`emojicode:code:${pubKey}`);
+      if (!emojiShortcode) {
+        try {
+          // Generate emoji shortcode with collision checking
+          emojiShortcode = await generateEmojicode(
+            config.baseEmoji,
+            async (code) => await db.checkEmojicodeExists(code)
+          );
+
+          // Save the mapping with timestamp
+          await db.saveEmojicodeMapping(pubKey, emojiShortcode);
+console.log(`assigned emoji shortcode ${emojiShortcode} to pubKey ${pubKey}`);
+        } catch (error) {
+console.error(`Failed to generate emoji shortcode for pubKey ${pubKey}:`, error);
+        }
+      }
     }
-    return bdo;
+
+    return { bdo, emojiShortcode };
   },
 
   getBases: async () => {
@@ -79,6 +103,73 @@ console.log('saving pubKey bdo for: ', `bdo:${pubKey}`);
   getKeys: async () => {
     const keyString = await client.get('keys');
     return JSON.parse(keyString);
+  },
+
+  // Short code functionality for public BDOs
+  getNextShortCode: async () => {
+    const currentCounter = await client.get('shortcode:counter') || '0';
+    const nextCounter = parseInt(currentCounter) + 1;
+    await client.set('shortcode:counter', nextCounter.toString());
+
+    // Convert to 36-bit hex (9 hex characters max for 36 bits)
+    const shortCode = nextCounter.toString(16).padStart(9, '0');
+    return shortCode;
+  },
+
+  saveShortCodeMapping: async (pubKey, shortCode) => {
+    // Save bidirectional mapping
+    await client.set(`shortcode:pubkey:${shortCode}`, pubKey);
+    await client.set(`shortcode:code:${pubKey}`, shortCode);
+  },
+
+  getShortCodeForPubKey: async (pubKey) => {
+    return await client.get(`shortcode:code:${pubKey}`);
+  },
+
+  getPubKeyForShortCode: async (shortCode) => {
+    return await client.get(`shortcode:pubkey:${shortCode}`);
+  },
+
+  // Emojicode functionality for BDOs
+  checkEmojicodeExists: async (emojicode) => {
+    const exists = await client.get(`emojicode:pubkey:${emojicode}`);
+    return exists !== null;
+  },
+
+  saveEmojicodeMapping: async (pubKey, emojicode) => {
+    const timestamp = Date.now();
+
+    // Save bidirectional mapping
+    await client.set(`emojicode:pubkey:${emojicode}`, pubKey);
+    await client.set(`emojicode:code:${pubKey}`, emojicode);
+
+    // Save creation timestamp for pruning
+    await client.set(`emojicode:created:${emojicode}`, timestamp.toString());
+
+    console.log(`Saved emojicode ${emojicode} for pubKey ${pubKey} at ${timestamp}`);
+  },
+
+  getEmojicodeForPubKey: async (pubKey) => {
+    return await client.get(`emojicode:code:${pubKey}`);
+  },
+
+  getPubKeyForEmojicode: async (emojicode) => {
+    return await client.get(`emojicode:pubkey:${emojicode}`);
+  },
+
+  getEmojicodeCreationTime: async (emojicode) => {
+    const timestamp = await client.get(`emojicode:created:${emojicode}`);
+    return timestamp ? parseInt(timestamp) : null;
+  },
+
+  deleteEmojicode: async (emojicode) => {
+    const pubKey = await client.get(`emojicode:pubkey:${emojicode}`);
+    if (pubKey) {
+      await client.del(`emojicode:code:${pubKey}`);
+    }
+    await client.del(`emojicode:pubkey:${emojicode}`);
+    await client.del(`emojicode:created:${emojicode}`);
+    console.log(`Deleted emojicode ${emojicode}`);
   }
 
 };

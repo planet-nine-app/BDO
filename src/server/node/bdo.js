@@ -7,6 +7,7 @@ import fount from 'fount-js';
 import sessionless from 'sessionless-node';
 import MAGIC from './src/magic/magic.js';
 import db from './src/persistence/db.js';
+import gateway from 'magic-gateway-js';
 
 const sk = (keys) => {
   global.keys = keys;
@@ -98,17 +99,21 @@ console.log('resp.status is', resp.status);
     const user = await resp.json();
     const uuid = user.userUUID;
 
+    let emojiShortcode = null;
+
     if(newBDO) {
       const response = await bdo.putBDO(uuid, newBDO, hash, pub ? pubKey : null);
       if(!response) {
         res.status = 404;
         return res.send({error: 'not found'});
       }
+      emojiShortcode = response.emojiShortcode;
     }
-    
+
     return res.send({
       uuid,
-      bdo: newBDO
+      bdo: newBDO,
+      emojiShortcode
     });
   } catch(err) {
 console.warn(err);
@@ -137,7 +142,7 @@ console.log(resp.status);
   
     if(pub) {
       const existingBDO = await bdo.getBDO(uuid, hash);
-      if(existingBDO && existingBDO.pubKey !== pubKey) {
+      if(existingBDO && existingBDO.pub && existingBDO.pubKey !== pubKey) {
 console.log('this is failing');
 console.log(existingBDO.pubKey);
 console.log(pubKey);
@@ -146,10 +151,11 @@ console.log(pubKey);
       }
     }
 
-    const newBDO = await bdo.putBDO(uuid, body.bdo, hash, pubKey);
+    const response = await bdo.putBDO(uuid, body.bdo, hash, pubKey);
     return res.send({
       uuid,
-      bdo: newBDO
+      bdo: response.bdo,
+      emojiShortcode: response.emojiShortcode
     });
   } catch(err) {
 console.warn(err);
@@ -165,7 +171,8 @@ console.log('get bdo');
     const timestamp = req.query.timestamp;
     const signature = req.query.signature;
     const hash = req.query.hash;
-    const pubKey = req.query.pubKey;
+    let pubKey = req.query.pubKey;
+    const emojicode = req.query.emojicode;
 
     const resp = await fetch(`${continuebeeURL}user/${uuid}?timestamp=${timestamp}&hash=${hash}&signature=${signature}`);
 console.log(resp.status);
@@ -174,9 +181,21 @@ console.log(resp.status);
       return res.send({error: 'Auth error'});
     }
 
+    // If emojicode provided, look up the pubKey
+    if(emojicode) {
+console.log('looking up pubKey for emojicode:', emojicode);
+      const emojipubKey = await db.getPubKeyForEmojicode(emojicode);
+      if(!emojipubKey) {
+        res.status = 404;
+        return res.send({error: 'Emojicode not found'});
+      }
+console.log('found pubKey for emojicode:', emojipubKey);
+      pubKey = emojipubKey;
+    }
+
     const newBDO = await bdo.getBDO(uuid, hash, pubKey);
     return res.send({
-      uuid, 
+      uuid,
       bdo: newBDO
     });
   } catch(err) {
@@ -425,6 +444,162 @@ console.warn(err);
     return res.send({error: 'not found'});
   }
 });
+
+// Set up magic gateway for creation spells
+const setupMagicGateway = async () => {
+  try {
+    console.log('🪄 Setting up BDO magic gateway...');
+
+    // Get BDO user for gateway setup
+    const bdoUser = await db.getBDO('bdo');
+    const fountUser = { uuid: bdoUser.fountUUID, pubKey: bdoUser.fountPubKey };
+
+    // Simple spellbook for BDO - just needs to handle createBDO
+    const spellbook = {
+      createBDO: {
+        destinations: [
+          { stopName: 'julia', stopURL: 'http://localhost:3007/magic/spell/' },
+          { stopName: 'fount', stopURL: 'http://localhost:3006/resolve/' },
+          { stopName: 'bdo', stopURL: 'http://localhost:3003/magic/spell/' }
+        ]
+      }
+    };
+
+    // Handle successful spell - this is where we actually create the BDO
+    const onSuccess = async (req, res, result) => {
+      try {
+        console.log('✅ BDO createBDO spell succeeded, creating BDO...');
+
+        const spell = req.body;
+        const bdoData = spell.bdoData; // BDO data should be in spell payload
+
+        if (!bdoData) {
+          return res.status(400).send({ success: false, error: 'No BDO data in spell' });
+        }
+
+        // Create the BDO using existing logic
+        const hash = spell.hash || 'default-hash';
+        const pubKey = spell.pubKey;
+
+        const newBDO = await bdo.putBDO(spell.casterUUID, bdoData, hash, pubKey);
+
+        result.bdo = {
+          success: true,
+          uuid: spell.casterUUID,
+          bdo: newBDO,
+          message: 'BDO created via spell'
+        };
+
+        res.send(result);
+      } catch(err) {
+        console.error('❌ Error creating BDO via spell:', err);
+        res.status(500).send({ success: false, error: err.message });
+      }
+    };
+
+    // Set up the magic gateway
+    gateway.expressApp(app, fountUser, spellbook, 'bdo', sessionless, null, onSuccess);
+
+    console.log('✅ BDO magic gateway ready');
+  } catch(err) {
+    console.error('❌ Failed to setup BDO magic gateway:', err);
+  }
+};
+
+// Short code endpoint - get BDO by short code
+app.get('/short/:shortCode', async (req, res) => {
+console.log('getting bdo by short code');
+  try {
+    const shortCode = req.params.shortCode;
+    const pubKey = await db.getPubKeyForShortCode(shortCode);
+
+    if (!pubKey) {
+      res.status(404);
+      return res.send({error: 'Short code not found'});
+    }
+
+    const bdoData = await bdo.getBDO(null, null, pubKey);
+
+    if (!bdoData) {
+      res.status(404);
+      return res.send({error: 'BDO not found'});
+    }
+
+    return res.send({
+      shortCode,
+      pubKey,
+      bdo: bdoData
+    });
+  } catch(err) {
+console.warn(err);
+    res.status(404);
+    return res.send({error: 'not found'});
+  }
+});
+
+// Emojicode endpoint - get BDO by emojicode
+app.get('/emoji/:emojicode', async (req, res) => {
+console.log('getting bdo by emojicode');
+  try {
+    const emojicode = req.params.emojicode;
+    const pubKey = await db.getPubKeyForEmojicode(emojicode);
+
+    if (!pubKey) {
+      res.status(404);
+      return res.send({error: 'Emojicode not found'});
+    }
+
+    const bdoData = await bdo.getBDO(null, null, pubKey);
+
+    if (!bdoData) {
+      res.status(404);
+      return res.send({error: 'BDO not found'});
+    }
+
+    // Get creation timestamp
+    const createdAt = await db.getEmojicodeCreationTime(emojicode);
+
+    return res.send({
+      emojicode,
+      pubKey,
+      bdo: bdoData,
+      createdAt
+    });
+  } catch(err) {
+console.warn(err);
+    res.status(404);
+    return res.send({error: 'not found'});
+  }
+});
+
+// Reverse lookup - get emojicode for a pubKey
+app.get('/pubkey/:pubKey/emojicode', async (req, res) => {
+console.log('getting emojicode for pubKey');
+  try {
+    const pubKey = req.params.pubKey;
+    const emojicode = await db.getEmojicodeForPubKey(pubKey);
+
+    if (!emojicode) {
+      res.status(404);
+      return res.send({error: 'Emojicode not found for this pubKey'});
+    }
+
+    const createdAt = await db.getEmojicodeCreationTime(emojicode);
+
+    return res.send({
+      pubKey,
+      emojicode,
+      createdAt
+    });
+  } catch(err) {
+console.warn(err);
+    res.status(404);
+    return res.send({error: 'not found'});
+  }
+});
+
+// Initialize magic gateway
+setupMagicGateway();
 
 app.listen(3003);
 console.log('give me your bdo');
