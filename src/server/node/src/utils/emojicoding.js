@@ -89,7 +89,7 @@ function getUniqueFromEmojicode(emojicode) {
   return [...emojicode].slice(3, 8).join('');
 }
 
-module.exports = {
+export {
   generateEmojicode,
   isValidEmojicode,
   getBaseFromEmojicode,
