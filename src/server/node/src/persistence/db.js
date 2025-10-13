@@ -23,12 +23,16 @@ console.log(bdo);
 console.log('putting', bdo, 'for', hash);
     const hashQueryString = `bdo:${uuid}_${hash}`;
     await client.set(hashQueryString, JSON.stringify(bdo));
+
+    let shortCode = null;
+    let emojicode = null;
+
     if(pubKey) {
 console.log('saving pubKey bdo for: ', `bdo:${pubKey}`);
       await client.set(`bdo:${pubKey}`, JSON.stringify(bdo));
 
       // Generate and save short code for public BDOs
-      let shortCode = await client.get(`shortcode:code:${pubKey}`);
+      shortCode = await client.get(`shortcode:code:${pubKey}`);
       if (!shortCode) {
         const currentCounter = await client.get('shortcode:counter') || '0';
         const nextCounter = parseInt(currentCounter) + 1;
@@ -42,7 +46,7 @@ console.log(`assigned short code ${shortCode} to pubKey ${pubKey}`);
       }
 
       // Generate and save emojicode for public BDOs
-      let emojicode = await client.get(`emojicode:code:${pubKey}`);
+      emojicode = await client.get(`emojicode:code:${pubKey}`);
       if (!emojicode) {
         try {
           // Generate emojicode with collision checking
@@ -59,7 +63,8 @@ console.error(`Failed to generate emojicode for pubKey ${pubKey}:`, error);
         }
       }
     }
-    return bdo;
+
+    return { bdo, shortCode, emojicode };
   },
 
   getBases: async () => {
