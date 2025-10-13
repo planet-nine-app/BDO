@@ -34,6 +34,15 @@ The BDO service is a core Planet Nine microservice that provides persistent stor
 - **Dual Endpoints**: GET `/emoji/:emojicode` and GET `/pubkey/:pubKey/emojicode`
 - **Automatic Assignment**: Emojicodes assigned automatically on first public BDO save
 
+### ✅ **Music BDO Support** (October 2025)
+- **Embedded Players**: SVG-based music players with iframe embeds (Mirlo, Bandcamp, SoundCloud, Spotify)
+- **Emojicode Sharing**: Share music tracks using memorable 8-emoji codes
+- **AdvanceKey Integration**: Type emojicodes in iOS keyboard to play music inline
+- **AdvanceShare Ready**: Cross-app music sharing via Planet Nine ecosystem
+- **Metadata Support**: Track title, artist, artwork, platform detection
+- **Customizable Layouts**: Standard (800x400) and compact (400x300) modes
+- **See**: [MUSIC-BDOS.md](MUSIC-BDOS.md) for complete documentation
+
 ## Technical Architecture
 
 ### Core Components
@@ -121,11 +130,25 @@ bdo/
 │       ├── magic/magic.js       # MAGIC protocol handlers
 │       ├── persistence/db.js     # Redis client and data operations
 │       └── utils/
-│           └── emojicoding.js   # Emojicode generation utility
-└── CLAUDE.md                    # This documentation
+│           ├── emojicoding.js   # Emojicode generation utility
+│           └── music-bdo.js     # Music BDO SVG generator
+├── examples/
+│   └── create-music-bdo.js      # Example music BDO creation script
+├── CLAUDE.md                    # Main documentation
+└── MUSIC-BDOS.md                # Music BDO documentation
 ```
 
 ## Recent Changes
+
+### Music BDO Support (October 2025)
+- Added SVG-based music player generator for BDOs
+- Support for multiple platforms: Mirlo, Bandcamp, SoundCloud, Spotify
+- Embedded iframe players using foreignObject in SVG
+- Metadata support: title, artist, artwork, platform detection
+- Standard (800x400) and compact (400x300) layouts
+- AdvanceKey/AdvanceShare integration via emojicodes
+- Complete documentation in MUSIC-BDOS.md
+- Example script: examples/create-music-bdo.js
 
 ### Emojicode Feature (October 2025)
 - Added automatic emojicode generation for public BDOs
