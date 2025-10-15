@@ -75,6 +75,155 @@ console.log('about to get spell entry');
       body: JSON.stringify(spell),
       headers: {'Content-Type': 'application/json'}
     });
+  },
+
+  // 🪄 MAGIC-ROUTED ENDPOINTS (No auth needed - resolver authorizes)
+
+  bdoUserCreate: async (spell) => {
+    try {
+      const { hash, bdo: newBDO, pub, pubKey } = spell.components;
+
+      if (!hash) {
+        return {
+          success: false,
+          error: 'Missing required field: hash'
+        };
+      }
+
+      // Import BDO module
+      const bdoModule = await import('../bdo/bdo.js');
+      const bdo = bdoModule.default;
+
+      const uuid = spell.casterUUID;
+      let emojiShortcode = null;
+
+      if (newBDO) {
+        const response = await bdo.putBDO(uuid, newBDO, hash, pub ? pubKey : null);
+        if (!response) {
+          return {
+            success: false,
+            error: 'Failed to save BDO'
+          };
+        }
+        emojiShortcode = response.emojiShortcode;
+      }
+
+      return {
+        success: true,
+        uuid,
+        bdo: newBDO,
+        emojiShortcode
+      };
+    } catch (err) {
+      console.error('bdoUserCreate error:', err);
+      return {
+        success: false,
+        error: err.message
+      };
+    }
+  },
+
+  bdoUserBdo: async (spell) => {
+    try {
+      const { uuid, hash, pub, pubKey, bdo: bdoData } = spell.components;
+
+      if (!uuid || !hash) {
+        return {
+          success: false,
+          error: 'Missing required fields: uuid, hash'
+        };
+      }
+
+      // Import BDO module
+      const bdoModule = await import('../bdo/bdo.js');
+      const bdo = bdoModule.default;
+
+      // Check if trying to overwrite a public BDO with different pubKey
+      if (pub) {
+        const existingBDO = await bdo.getBDO(uuid, hash);
+        if (existingBDO && existingBDO.pub && existingBDO.pubKey !== pubKey) {
+          return {
+            success: false,
+            error: 'Cannot overwrite public BDO with different pubKey'
+          };
+        }
+      }
+
+      const response = await bdo.putBDO(uuid, bdoData, hash, pubKey);
+
+      return {
+        success: true,
+        uuid,
+        bdo: response.bdo,
+        emojiShortcode: response.emojiShortcode
+      };
+    } catch (err) {
+      console.error('bdoUserBdo error:', err);
+      return {
+        success: false,
+        error: err.message
+      };
+    }
+  },
+
+  bdoUserBases: async (spell) => {
+    try {
+      const { uuid, hash, bases } = spell.components;
+
+      if (!uuid || !hash || !bases) {
+        return {
+          success: false,
+          error: 'Missing required fields: uuid, hash, bases'
+        };
+      }
+
+      // Import BDO module
+      const bdoModule = await import('../bdo/bdo.js');
+      const bdo = bdoModule.default;
+
+      const updatedBases = await bdo.putBases(bases);
+
+      return {
+        success: true,
+        bases: updatedBases
+      };
+    } catch (err) {
+      console.error('bdoUserBases error:', err);
+      return {
+        success: false,
+        error: err.message
+      };
+    }
+  },
+
+  bdoUserSpellbooks: async (spell) => {
+    try {
+      const { uuid, hash, spellbook } = spell.components;
+
+      if (!uuid || !hash || !spellbook) {
+        return {
+          success: false,
+          error: 'Missing required fields: uuid, hash, spellbook'
+        };
+      }
+
+      // Import BDO module
+      const bdoModule = await import('../bdo/bdo.js');
+      const bdo = bdoModule.default;
+
+      const spellbooks = await bdo.putSpellbook(spellbook);
+
+      return {
+        success: true,
+        spellbooks
+      };
+    } catch (err) {
+      console.error('bdoUserSpellbooks error:', err);
+      return {
+        success: false,
+        error: err.message
+      };
+    }
   }
 };
 

@@ -213,3 +213,27 @@ export BDO_BASE_EMOJI="🏰👑✨"
 ```
 
 The BDO service provides the foundational data layer for the entire Planet Nine ecosystem, with enhancements for easy BDO sharing through both machine-friendly short codes and human-memorable emojicodes.
+
+## MAGIC Route Conversion (October 2025)
+
+All BDO REST endpoints have been converted to MAGIC protocol spells:
+
+### Converted Spells (6 total)
+1. **bdoUserCreate** - Create BDO user with optional initial BDO
+2. **bdoUserBDO** - Store/update user BDO
+3. **bdoUserBDOPublic** - Save public BDO with short code and emojicode
+4. **bdoUserSpellbooks** - Store user spellbooks
+5. **bdoUserBases** - Update user's Planet Nine bases
+6. **bdoUserDelete** - Delete BDO user
+
+**Testing**: Comprehensive MAGIC spell tests available in `/test/mocha/magic-spells.js` (10 tests covering success and error cases)
+
+**Documentation**: See `/MAGIC-ROUTES.md` for complete spell specifications and migration guide
+
+**Special Features**:
+- Public BDO spell automatically generates short codes and emojicodes
+- All spells maintain backward compatibility with existing BDO features
+- Emojicode creation timestamps tracked for future pruning
+
+## Last Updated
+October 14, 2025 - Completed full MAGIC protocol conversion. All 6 routes now accessible via MAGIC spells with centralized Fount authentication.
