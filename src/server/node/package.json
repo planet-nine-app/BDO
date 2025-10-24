@@ -1,7 +1,7 @@
 {
-  "name": "pref",
+  "name": "bdo",
   "version": "0.0.1",
-  "description": "Pref is a Planet Nine miniservice for storing user preferences",
+  "description": "bdo takes your big dumb objects",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
