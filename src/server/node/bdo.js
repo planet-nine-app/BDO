@@ -599,7 +599,7 @@ console.warn(err);
 });
 
 // Initialize magic gateway
-setupMagicGateway();
+//setupMagicGateway();
 
 app.listen(3003);
 console.log('give me your bdo');
