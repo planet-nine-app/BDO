@@ -29,7 +29,11 @@ newBDO.put = 'something else';
 
 const user = await bdo.updateBDO(uuid, hash, newBDO); 
 
-const userAgain = await bdo.getBDO(uuid, hash); 
+const userAgain = await bdo.getBDO(uuid, hash);
+
+// Get BDO by emojicode (public BDOs only)
+const bdoByEmojicode = await bdo.getBDOByEmojicode('🌍🔑💎🌟💎🎨🐉📌');
+// Returns: { emojicode, pubKey, bdo: {...}, createdAt: 1697040000000 }
 
 const deleted = await bdo.deleteUser(uuid, hash); // returns true on success
 ```

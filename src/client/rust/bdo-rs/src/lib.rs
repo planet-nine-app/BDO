@@ -12,7 +12,7 @@ use sessionless::{Sessionless, Signature};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::collections::HashMap;
 use std::option::Option;
-use crate::structs::{BDOUser, SuccessResult};
+use crate::structs::{BDOUser, SuccessResult, EmojicodeResponse};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all="camelCase")]
@@ -256,12 +256,12 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
 
         // Don't translate here - let the BDO server handle allyabase:// protocol
         let teleport_url = format!(
-            "{}user/{}/teleport?timestamp={}&hash={}&signature={}&url={}", 
-            self.base_url, 
-            uuid, 
-            timestamp, 
-            hash, 
-            signature, 
+            "{}user/{}/teleport?timestamp={}&hash={}&signature={}&url={}",
+            self.base_url,
+            uuid,
+            timestamp,
+            hash,
+            signature,
             urlencoding::encode(url)
         );
 
@@ -270,5 +270,15 @@ dbg!("{}", &self.sessionless.public_key().to_hex());
         let teleported_content: Value = res.json().await?;
 
         Ok(teleported_content)
+    }
+
+    pub async fn get_bdo_by_emojicode(&self, emojicode: &str) -> Result<EmojicodeResponse, Box<dyn std::error::Error>> {
+        let encoded_emojicode = urlencoding::encode(emojicode);
+        let url = format!("{}emoji/{}", self.base_url, encoded_emojicode);
+
+        let res = self.get(&url).await?;
+        let emojicode_response: EmojicodeResponse = res.json().await?;
+
+        Ok(emojicode_response)
     }
 }

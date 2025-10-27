@@ -164,6 +164,15 @@ console.log(user);
 
     const res = await _delete(`${bdo.baseURL}user/delete`, payload);
     return res.status === 200;
+  },
+
+  getBDOByEmojicode: async (emojicode) => {
+    const getURL = `${bdo.baseURL}emoji/${encodeURIComponent(emojicode)}`;
+
+    const res = await get(getURL);
+    const data = await res.json();
+
+    return data;
   }
 
 };

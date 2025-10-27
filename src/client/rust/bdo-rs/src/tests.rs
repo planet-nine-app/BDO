@@ -1,4 +1,4 @@
-use crate::{Bases, BDOUser, BDO, Spellbook, SuccessResult};
+use crate::{Bases, BDOUser, BDO, Spellbook, SuccessResult, EmojicodeResponse};
 use sessionless::hex::IntoHex;
 use sessionless::hex::FromHex;
 use sessionless::{Sessionless, PrivateKey};
@@ -94,7 +94,7 @@ async fn test_bdo() {
 
     async fn get_bdo(bdo: &BDO, bdo2: &BDO, saved_user: &BDOUser, hash: &str) -> Option<BDOUser> {
         let result = bdo2.get_public_bdo(&saved_user.uuid, &hash, &bdo.sessionless.public_key().to_hex()).await;
- 
+
         match result {
             Ok(user) => {
                 println!("Successfully got BDOUser: {}", user.uuid);
@@ -104,8 +104,45 @@ async fn test_bdo() {
                 );
                 Some(user)
             },
-            Err(error) => { 
+            Err(error) => {
                 eprintln!("Error occurred get_bdo: {}", error);
+                println!("Error details: {:?}", error);
+                None
+            }
+        }
+    }
+
+    async fn get_bdo_by_emojicode(bdo: &BDO, pub_key: &str) -> Option<EmojicodeResponse> {
+        // First, get the emojicode for the public BDO
+        let url = format!("http://localhost:3003/pubkey/{}/emojicode", pub_key);
+        let client = reqwest::Client::new();
+        let emojicode_info_result = client.get(&url).send().await;
+
+        let emojicode = match emojicode_info_result {
+            Ok(response) => {
+                let json: serde_json::Value = response.json().await.expect("json");
+                json["emojicode"].as_str().expect("emojicode string").to_string()
+            },
+            Err(error) => {
+                eprintln!("Error getting emojicode: {}", error);
+                return None;
+            }
+        };
+
+        println!("Testing with emojicode: {}", emojicode);
+
+        // Now test getting BDO by emojicode
+        let result = bdo.get_bdo_by_emojicode(&emojicode).await;
+
+        match result {
+            Ok(response) => {
+                println!("Successfully got BDO by emojicode: {}", response.emojicode);
+                assert_eq!(response.pub_key, pub_key);
+                assert_eq!(response.emojicode, emojicode);
+                Some(response)
+            },
+            Err(error) => {
+                eprintln!("Error occurred get_bdo_by_emojicode: {}", error);
                 println!("Error details: {:?}", error);
                 None
             }
@@ -215,7 +252,11 @@ async fn test_bdo() {
     saved_user = create_user(&bdo, &hash).await.expect("user");
     saved_user2 = create_user2_with_private_bdo(&bdo2, &hash2).await.expect("user2");
 
+    // Update user to make it public so it gets an emojicode
+    let _ = update_bdo(&bdo, &saved_user, &hash).await.expect("update_bdo");
+
     Some(get_bdo(&bdo, &bdo2, &saved_user2, &hash2).await.expect("get_bdo"));
+    Some(get_bdo_by_emojicode(&bdo2, &bdo.sessionless.public_key().to_hex()).await.expect("get_bdo_by_emojicode"));
     Some(get_spellbooks(&bdo, &saved_user, &hash).await);
 
 /*    if let Some(ref user) = saved_user {
