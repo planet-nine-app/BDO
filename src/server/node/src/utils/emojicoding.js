@@ -25,19 +25,19 @@ function generateUniqueEmojis() {
 }
 
 /**
- * Generates a full emojicode: 3 base emoji + 5 unique emoji
- * @param {string} baseEmoji - 3-emoji base string (from env var)
+ * Generates a full emojicode: 4 base emoji + 5 unique emoji
+ * @param {string} baseEmoji - 4-emoji base string (from env var)
  * @param {Function} checkCollision - Async function to check if code exists
  * @param {number} maxAttempts - Maximum collision retry attempts (default 100)
  * @returns {Promise<string>} 8-emoji emojicode
  */
 async function generateEmojicode(baseEmoji, checkCollision, maxAttempts = 100) {
-  if (!baseEmoji || baseEmoji.length < 3) {
-    throw new Error('Base emoji must be at least 3 characters');
+  if (!baseEmoji || baseEmoji.length < 4) {
+    throw new Error('Base emoji must be at least 4 characters');
   }
 
   // Extract first 3 emoji from base
-  const base = [...baseEmoji].slice(0, 3).join('');
+  const base = [...baseEmoji].slice(0, 4).join('');
 
   let attempts = 0;
   while (attempts < maxAttempts) {
@@ -73,20 +73,20 @@ function isValidEmojicode(emojicode) {
 
 /**
  * Extracts the base emoji from a full emojicode
- * @param {string} emojicode - The full 8-emoji code
- * @returns {string} First 3 emoji (base)
+ * @param {string} emojicode - The full 9-emoji code
+ * @returns {string} First 4 emoji (base)
  */
 function getBaseFromEmojicode(emojicode) {
-  return [...emojicode].slice(0, 3).join('');
+  return [...emojicode].slice(0, 4).join('');
 }
 
 /**
  * Extracts the unique emoji from a full emojicode
- * @param {string} emojicode - The full 8-emoji code
+ * @param {string} emojicode - The full 9-emoji code
  * @returns {string} Last 5 emoji (unique)
  */
 function getUniqueFromEmojicode(emojicode) {
-  return [...emojicode].slice(3, 8).join('');
+  return [...emojicode].slice(4, 9).join('');
 }
 
 export {
