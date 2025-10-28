@@ -37,7 +37,7 @@ async function generateEmojicode(baseEmoji, checkCollision, maxAttempts = 100) {
   }
 
   // Extract first 4 emoji from base
-  const base = [...baseEmoji].slice(0, 4).join('');
+  const base = baseEmoji;
 
   let attempts = 0;
   while (attempts < maxAttempts) {
