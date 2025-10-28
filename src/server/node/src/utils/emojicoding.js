@@ -1,5 +1,5 @@
 // Emojicoding utility for BDO
-// Generates unique 8-emoji codes: 3 base emoji + 5 unique emoji
+// Generates unique 9-emoji codes: 4 base emoji + 5 unique emoji
 
 // Diverse emoji palette for unique codes (avoiding similar-looking emojis)
 const EMOJI_PALETTE = [
@@ -36,7 +36,7 @@ async function generateEmojicode(baseEmoji, checkCollision, maxAttempts = 100) {
     throw new Error('Base emoji must be at least 4 characters');
   }
 
-  // Extract first 3 emoji from base
+  // Extract first 4 emoji from base
   const base = [...baseEmoji].slice(0, 4).join('');
 
   let attempts = 0;
@@ -67,8 +67,8 @@ function isValidEmojicode(emojicode) {
   // Convert to array of emoji characters (handles multi-byte UTF-8)
   const emojiArray = [...emojicode];
 
-  // Must be exactly 8 emoji
-  return emojiArray.length === 8;
+  // Must be exactly 9 emoji
+  return emojiArray.length === 9;
 }
 
 /**
