@@ -33,10 +33,11 @@ console.log('saving pubKey bdo for: ', `bdo:${pubKey}`);
       // Generate and save emoji shortcode for public BDOs (8-emoji code)
       emojiShortcode = await client.get(`emojicode:code:${pubKey}`);
       if (!emojiShortcode) {
+        const emojiPrefix = config.federationEmoji + config.baseEmoji;
         try {
           // Generate emoji shortcode with collision checking
           emojiShortcode = await generateEmojicode(
-            config.baseEmoji,
+            emojiPrefix,
             async (code) => await db.checkEmojicodeExists(code)
           );
 
