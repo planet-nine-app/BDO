@@ -32,6 +32,23 @@ const _delete = async (url, payload) => {
 const bdo = {
   baseURL: 'https://dev.bdo.allyabase.com/',
 
+  /**
+   * Configure the BDO client for different environments
+   * @param {Object} config - Configuration options
+   * @param {string} config.baseURL - Direct base URL (e.g., 'http://127.0.0.1:5114/')
+   * @param {string} config.wikiBaseURL - Wiki proxy base URL (e.g., 'http://127.0.0.1:5124')
+   *                                      Will construct URL as: {wikiBaseURL}/plugin/allyabase/bdo/
+   */
+  configure: (config) => {
+    if (config.wikiBaseURL) {
+      // Wiki proxy mode: route through wiki plugin
+      bdo.baseURL = `${config.wikiBaseURL.replace(/\/$/, '')}/plugin/allyabase/bdo/`;
+    } else if (config.baseURL) {
+      // Direct mode: use base URL as-is
+      bdo.baseURL = config.baseURL.endsWith('/') ? config.baseURL : config.baseURL + '/';
+    }
+  },
+
   createUser: async (hash, newBDO, saveKeys, getKeys) => {
     const keys = (await getKeys()) || (await sessionless.generateKeys(saveKeys, getKeys))
     sessionless.getKeys = getKeys;

@@ -171,6 +171,42 @@ console.error(`Failed to generate emoji shortcode for pubKey ${pubKey}:`, error)
     await client.del(`emojicode:pubkey:${emojicode}`);
     await client.del(`emojicode:created:${emojicode}`);
     console.log(`Deleted emojicode ${emojicode}`);
+  },
+
+  // Template index functionality
+  // Tracks emojicodes of linkitylink-template BDOs for efficient querying
+  // Uses JSON array storage instead of Redis SET
+  addTemplateToIndex: async (hash, emojicode) => {
+    // Get current template array
+    const templatesString = (await client.get(`templates:${hash}`)) || '[]';
+    const templates = JSON.parse(templatesString);
+
+    // Add emojicode if not already present
+    if (!templates.includes(emojicode)) {
+      templates.push(emojicode);
+      await client.set(`templates:${hash}`, JSON.stringify(templates));
+      console.log(`Added template ${emojicode} to index for hash ${hash}`);
+    } else {
+      console.log(`Template ${emojicode} already in index for hash ${hash}`);
+    }
+  },
+
+  getAllTemplates: async (hash) => {
+    // Get all templates for a specific hash
+    const templatesString = (await client.get(`templates:${hash}`)) || '[]';
+    const templates = JSON.parse(templatesString);
+    return templates;
+  },
+
+  removeTemplateFromIndex: async (hash, emojicode) => {
+    // Get current template array
+    const templatesString = (await client.get(`templates:${hash}`)) || '[]';
+    const templates = JSON.parse(templatesString);
+
+    // Remove emojicode if present
+    const filtered = templates.filter(t => t !== emojicode);
+    await client.set(`templates:${hash}`, JSON.stringify(filtered));
+    console.log(`Removed template ${emojicode} from index for hash ${hash}`);
   }
 
 };

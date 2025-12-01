@@ -598,6 +598,75 @@ console.warn(err);
   }
 });
 
+// Get all templates for a hash
+app.get('/templates/:hash', async (req, res) => {
+console.log('getting all templates for hash');
+  try {
+    const hash = req.params.hash;
+    const emojicodes = await db.getAllTemplates(hash);
+
+    console.log(`Found ${emojicodes.length} templates for hash ${hash}`);
+
+    // Fetch BDO data for each emojicode
+    const templates = [];
+    for (const emojicode of emojicodes) {
+      try {
+        const pubKey = await db.getPubKeyForEmojicode(emojicode);
+        if (!pubKey) continue;
+
+        const bdoData = await bdo.getBDO(null, null, pubKey);
+        if (!bdoData) continue;
+
+        templates.push({
+          emojicode,
+          pubKey,
+          ...bdoData
+        });
+      } catch (err) {
+        console.warn(`Failed to fetch template ${emojicode}:`, err);
+      }
+    }
+
+    return res.send({
+      success: true,
+      hash,
+      templates,
+      count: templates.length
+    });
+  } catch(err) {
+console.warn(err);
+    res.status(500);
+    return res.send({error: 'Failed to fetch templates'});
+  }
+});
+
+// Add template to index
+app.post('/templates/:hash/add', async (req, res) => {
+console.log('adding template to index');
+  try {
+    const hash = req.params.hash;
+    const { emojicode } = req.body;
+
+    if (!emojicode) {
+      res.status(400);
+      return res.send({error: 'Missing emojicode'});
+    }
+
+    await db.addTemplateToIndex(hash, emojicode);
+
+    return res.send({
+      success: true,
+      hash,
+      emojicode,
+      message: 'Template added to index'
+    });
+  } catch(err) {
+console.warn(err);
+    res.status(500);
+    return res.send({error: 'Failed to add template to index'});
+  }
+});
+
 // Initialize magic gateway
 //setupMagicGateway();
 
